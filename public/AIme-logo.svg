@@ -1,0 +1,20 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with Rounded Corners -->
+  <rect width="512" height="512" rx="100" fill="#FFFFFF"/>
+
+  <g transform="translate(256, 256)">
+    <!-- Neural Network Hexagon -->
+    <path d="M0 -150 L130 -75 L130 75 L0 150 L-130 75 L-130 -75 Z" stroke="#000000" stroke-width="12" fill="none"/>
+
+    <!-- Connection Nodes -->
+    <g fill="#000000">
+        <circle cx="0" cy="-150" r="12"/> <circle cx="130" cy="-75" r="12"/>
+        <circle cx="130" cy="75" r="12"/>  <circle cx="0" cy="150" r="12"/>
+        <circle cx="-130" cy="75" r="12"/> <circle cx="-130" cy="-75" r="12"/>
+    </g>
+
+    <!-- Center AI Spark with Perspective Offset -->
+    <!-- skewX(-20) creates the dynamic tilt -->
+    <path transform="skewX(20)" d="M0 -90 C10 -40 40 -10 90 0 C40 10 10 40 0 90 C-10 40 -40 10 -90 0 C-40 -10 -10 -40 0 -90 Z" fill="#000000"/>
+  </g>
+</svg>
