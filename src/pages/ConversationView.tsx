@@ -7,6 +7,8 @@ import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import remarkSupersub from 'remark-supersub';
+import mermaid from 'mermaid';
 import { Sun, Moon, Monitor, Copy, Check, Download, ChevronDown, ChevronRight, Brain } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import 'katex/dist/katex.min.css';
@@ -25,8 +27,57 @@ const preprocessContent = (content: string) => {
   return processed;
 };
 
+// Component for Mermaid Diagrams
+const MermaidBlock = ({ chart, theme }: { chart: string, theme: string }) => {
+  const [svg, setSvg] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    mermaid.initialize({
+       startOnLoad: false,
+       theme: theme === 'dark' ? 'dark' : 'default',
+       securityLevel: 'loose',
+    });
+    
+    const renderChart = async () => {
+      try {
+        const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+        const { svg } = await mermaid.render(id, chart);
+        setSvg(svg);
+        setError('');
+      } catch (err) {
+        console.error('Mermaid error:', err);
+        setError('Failed to render chart');
+      }
+    };
+    
+    renderChart();
+  }, [chart, theme]);
+
+  if (error) {
+     return (
+        <div className="error-container" style={{height: 'auto', padding: '10px', color: 'red', fontSize: '0.8em'}}>
+           Mermaid Error: {error}
+        </div>
+     );
+  }
+  
+  return (
+      <div 
+        className="mermaid-container" 
+        dangerouslySetInnerHTML={{ __html: svg }} 
+        style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            margin: '1em 0',
+            overflowX: 'auto' 
+        }} 
+      />
+  );
+};
+
 // Component for Thinking Process
-const ThinkingBlock = ({ children, theme }: { children: string, theme: any }) => {
+const ThinkingBlock = ({ children, theme, themeMode }: { children: string, theme: any, themeMode: string }) => {
   const [isCollapsed, setIsCollapsed] = useState(true); // Default collapsed
 
   return (
@@ -44,11 +95,17 @@ const ThinkingBlock = ({ children, theme }: { children: string, theme: any }) =>
       <div className={`think-content-wrapper ${isCollapsed ? 'collapsed' : 'expanded'}`}>
         <div className="think-content-inner">
            <ReactMarkdown
-              remarkPlugins={[remarkMath, remarkGfm]}
+              remarkPlugins={[remarkMath, remarkGfm, remarkSupersub]}
               rehypePlugins={[rehypeKatex]}
               components={{
-                code({node, inline, className, children, ...props}: any) {
+                code({inline, className, children, ...props}: any) {
                   const match = /language-(\w+)/.exec(className || '')
+                  const lang = match ? match[1] : '';
+                  
+                  if (!inline && lang === 'mermaid') {
+                     return <MermaidBlock chart={String(children)} theme={themeMode} />
+                  }
+
                   return !inline && match ? (
                     <CodeBlock 
                       language={match[1]} 
@@ -275,7 +332,11 @@ export default function ConversationView() {
                     if (part.startsWith('<think>') && part.endsWith('</think>')) {
                       const thinkContent = part.replace(/^<think>|<\/think>$/g, '');
                       return (
-                        <ThinkingBlock key={partIndex} theme={resolvedTheme === 'dark' ? oneDark : oneLight}>
+                        <ThinkingBlock 
+                          key={partIndex} 
+                          theme={resolvedTheme === 'dark' ? oneDark : oneLight}
+                          themeMode={resolvedTheme}
+                        >
                           {preprocessContent(thinkContent)}
                         </ThinkingBlock>
                       );
@@ -283,11 +344,17 @@ export default function ConversationView() {
                       return (
                         <ReactMarkdown
                           key={partIndex}
-                          remarkPlugins={[remarkMath, remarkGfm]}
+                          remarkPlugins={[remarkMath, remarkGfm, remarkSupersub]}
                           rehypePlugins={[rehypeKatex]}
                           components={{
-                            code({node, inline, className, children, ...props}: any) {
+                            code({inline, className, children, ...props}: any) {
                               const match = /language-(\w+)/.exec(className || '')
+                              const lang = match ? match[1] : '';
+                              
+                              if (!inline && lang === 'mermaid') {
+                                 return <MermaidBlock chart={String(children)} theme={resolvedTheme} />
+                              }
+
                               return !inline && match ? (
                                 <CodeBlock 
                                   language={match[1]} 
