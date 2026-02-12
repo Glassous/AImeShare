@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase, type Conversation, type Message } from '../lib/supabaseClient';
 import ReactMarkdown from 'react-markdown';
@@ -9,10 +9,25 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkSupersub from 'remark-supersub';
 import mermaid from 'mermaid';
-import { Sun, Moon, Monitor, Copy, Check, Download, ChevronDown, ChevronRight, Brain } from 'lucide-react';
+import { Sun, Moon, Monitor, Copy, Check, Download, ChevronDown, ChevronRight, Brain, Github, MoreVertical } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import 'katex/dist/katex.min.css';
 import './ConversationView.css';
+
+// Android Icon SVG Component
+const AndroidIcon = ({ size = 24, className = '' }: { size?: number, className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size} 
+    height={size} 
+    viewBox="0 0 16 16" 
+    fill="currentColor" 
+    className={className}
+    style={{ color: '#3DDC84' }}
+  >
+    <path d="M2.76 3.061a.5.5 0 0 1 .679.2l1.283 2.352A8.9 8.9 0 0 1 8 5a8.9 8.9 0 0 1 3.278.613l1.283-2.352a.5.5 0 1 1 .878.478l-1.252 2.295C14.475 7.266 16 9.477 16 12H0c0-2.523 1.525-4.734 3.813-5.966L2.56 3.74a.5.5 0 0 1 .2-.678ZM5 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2m6 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2" />
+  </svg>
+);
 
 // Helper to normalize LaTeX delimiters
 const preprocessContent = (content: string) => {
@@ -229,8 +244,53 @@ export default function ConversationView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState('https://github.com/Glassous/AImeAndroid/releases');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isMenuClosing, setIsMenuClosing] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   
   const { theme, resolvedTheme, cycleTheme } = useTheme();
+
+  const closeMenu = useCallback(() => {
+    if (showMobileMenu) {
+      setIsMenuClosing(true);
+    }
+  }, [showMobileMenu]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        closeMenu();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [closeMenu]);
+
+  useEffect(() => {
+    const fetchLatestRelease = async () => {
+      try {
+        const response = await fetch('https://api.github.com/repos/Glassous/AImeAndroid/releases/latest');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.assets && data.assets.length > 0) {
+            const apkAsset = data.assets.find((asset: any) => asset.name.endsWith('.apk'));
+            if (apkAsset) {
+              setDownloadUrl(apkAsset.browser_download_url);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching latest release:', error);
+      }
+    };
+    
+    fetchLatestRelease();
+  }, []);
 
   const handleCopy = async (text: string, index: number) => {
     try {
@@ -300,11 +360,90 @@ export default function ConversationView() {
         </div>
 
         <div className="top-bar-right">
-           <button onClick={cycleTheme} className="theme-toggle-btn" title={`Current theme: ${theme}`}>
-             {theme === 'system' && <Monitor size={20} />}
-             {theme === 'light' && <Sun size={20} />}
-             {theme === 'dark' && <Moon size={20} />}
-           </button>
+           <div className="desktop-actions">
+             <a 
+               href="https://github.com/Glassous/AImeAndroid" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               className="icon-link-btn"
+               title="GitHub Repository"
+             >
+               <Github size={20} />
+             </a>
+           </div>
+
+           <a 
+             href={downloadUrl}
+             target="_blank" 
+             rel="noopener noreferrer"
+             className="download-app-btn"
+             title="Download Android App"
+           >
+             <AndroidIcon size={18} />
+             <span className="download-text">Download App</span>
+           </a>
+           
+           <div className="desktop-actions divider-wrapper">
+             <div className="divider-vertical"></div>
+           </div>
+
+           <div className="desktop-actions">
+             <button onClick={cycleTheme} className="theme-toggle-btn" title={`Current theme: ${theme}`}>
+               {theme === 'system' && <Monitor size={20} />}
+               {theme === 'light' && <Sun size={20} />}
+               {theme === 'dark' && <Moon size={20} />}
+             </button>
+           </div>
+
+           {/* Mobile Menu Button */}
+            <div className="mobile-menu-container" ref={menuRef}>
+              <button 
+                className="icon-link-btn mobile-menu-btn" 
+                onClick={() => {
+                  if (showMobileMenu) {
+                    closeMenu();
+                  } else {
+                    setShowMobileMenu(true);
+                  }
+                }}
+                title="More options"
+              >
+                <MoreVertical size={20} />
+              </button>
+
+              {(showMobileMenu || isMenuClosing) && (
+                <div 
+                  className={`mobile-dropdown-menu ${isMenuClosing ? 'closing' : ''}`}
+                  onAnimationEnd={() => {
+                    if (isMenuClosing) {
+                      setShowMobileMenu(false);
+                      setIsMenuClosing(false);
+                    }
+                  }}
+                >
+                  <a 
+                    href="https://github.com/Glassous/AImeAndroid" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="mobile-menu-item"
+                    onClick={closeMenu}
+                  >
+                    <Github size={18} />
+                    <span>GitHub</span>
+                  </a>
+                  
+                  <button 
+                    onClick={() => { cycleTheme(); closeMenu(); }} 
+                    className="mobile-menu-item"
+                  >
+                    {theme === 'system' && <Monitor size={18} />}
+                    {theme === 'light' && <Sun size={18} />}
+                    {theme === 'dark' && <Moon size={18} />}
+                    <span>{theme.charAt(0).toUpperCase() + theme.slice(1)}</span>
+                  </button>
+                </div>
+              )}
+            </div>
         </div>
       </header>
 
@@ -347,6 +486,9 @@ export default function ConversationView() {
                           remarkPlugins={[remarkMath, remarkGfm, remarkSupersub]}
                           rehypePlugins={[rehypeKatex]}
                           components={{
+                            a({node, ...props}: any) {
+                              return <a target="_blank" rel="noopener noreferrer" {...props} />
+                            },
                             code({inline, className, children, ...props}: any) {
                               const match = /language-(\w+)/.exec(className || '')
                               const lang = match ? match[1] : '';
