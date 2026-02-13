@@ -9,8 +9,9 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkSupersub from 'remark-supersub';
 import mermaid from 'mermaid';
-import { Sun, Moon, Monitor, Copy, Check, Download, ChevronDown, ChevronRight, Brain, Github, MoreVertical } from 'lucide-react';
+import { Sun, Moon, Monitor, Copy, Check, Download, ChevronDown, ChevronRight, Brain, Github, MoreVertical, FileQuestion } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import ConversationInput from '../components/ConversationInput';
 import 'katex/dist/katex.min.css';
 import './ConversationView.css';
 
@@ -306,6 +307,11 @@ export default function ConversationView() {
     async function fetchConversation() {
       if (!uuid) return;
 
+      // Reset state before fetching new conversation
+      setLoading(true);
+      setError(null);
+      setConversation(null);
+
       try {
         const { data, error } = await supabase
           .from('aime_shared_conversations')
@@ -341,9 +347,28 @@ export default function ConversationView() {
     fetchConversation();
   }, [uuid]);
 
-  if (loading) return <div className="loading-container">Loading...</div>;
-  if (error) return <div className="error-container">Error: {error}</div>;
-  if (!conversation) return <div className="error-container">Conversation not found</div>;
+  if (loading) {
+    return (
+      <div className="loading-view">
+        <div className="spinner"></div>
+        <p>Loading conversation...</p>
+      </div>
+    );
+  }
+
+  if (error || !conversation) {
+    return (
+      <div className="error-view">
+        <FileQuestion size={48} className="error-icon" />
+        <h2>{error ? 'Error Loading Conversation' : 'Conversation Not Found'}</h2>
+        <p>{error || "The conversation you are looking for does not exist or has been removed."}</p>
+        <div style={{width: '100%', maxWidth: '400px', marginBottom: '24px'}}>
+           <ConversationInput />
+        </div>
+        <a href="/" className="home-button">Go Home</a>
+      </div>
+    );
+  }
 
   return (
     <div className="conversation-container" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

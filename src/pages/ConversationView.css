@@ -602,12 +602,3 @@
   color: var(--md-sys-color-on-surface);
   border: 1px solid var(--md-sys-color-outline);
 }
-
-.loading-container, .error-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 50vh; /* Adjust height since we removed 100% height container */
-  font: var(--md-sys-typescale-body-large-font);
-  color: var(--md-sys-color-on-surface);
-}
