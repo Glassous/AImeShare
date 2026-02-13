@@ -398,7 +398,7 @@ export default function ConversationView() {
       {/* Top Bar */}
       <header className="top-app-bar">
         <div className="top-bar-left">
-           <img src="/AIme-logo.svg" alt="AIme Logo" style={{ width: '24px', height: '24px', marginRight: '8px' }} />
+           <img src="/AIme-logo.svg" alt="AIme Logo" className="app-logo" style={{ width: '24px', height: '24px' }} />
            <span className="brand-text">AIme</span>
         </div>
         
