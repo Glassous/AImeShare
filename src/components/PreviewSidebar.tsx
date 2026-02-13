@@ -148,8 +148,23 @@ export default function PreviewSidebar({
     navigator.clipboard.writeText(message);
   };
 
-  // Inject error capturing script
+  // Inject error capturing script and styles for mobile view
   const getInjectedContent = () => {
+    // Determine if we should hide scrollbars (in mobile view or mobile simulation)
+    const shouldHideScrollbars = isMobileView || deviceMode === 'mobile';
+    
+    const styles = shouldHideScrollbars ? `
+      <style>
+        ::-webkit-scrollbar {
+          display: none;
+        }
+        * {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      </style>
+    ` : '';
+
     const script = `
       <script>
         (function() {
@@ -173,11 +188,17 @@ export default function PreviewSidebar({
         })();
       </script>
     `;
-    // Insert script after <head> or at the beginning if no head
-    if (content.includes('<head>')) {
-      return content.replace('<head>', '<head>' + script);
+    
+    // Inject styles and script
+    let injectedContent = content;
+    
+    if (injectedContent.includes('<head>')) {
+      injectedContent = injectedContent.replace('<head>', '<head>' + styles + script);
+    } else {
+      injectedContent = styles + script + injectedContent;
     }
-    return script + content;
+    
+    return injectedContent;
   };
 
   if (!isOpen) return null;
