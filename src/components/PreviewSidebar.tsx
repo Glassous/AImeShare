@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Code, Eye, Smartphone, Monitor, Copy, Download, Check } from 'lucide-react';
+import { X, Code, Eye, Smartphone, Monitor, Copy, Download, Check, RefreshCw, Terminal, AlertCircle } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './PreviewSidebar.css';
@@ -11,6 +11,12 @@ interface PreviewSidebarProps {
   width: number;
   onWidthChange: (width: number) => void;
   themeMode: 'light' | 'dark';
+}
+
+interface ConsoleLog {
+  type: 'error' | 'warn' | 'info';
+  message: string;
+  timestamp: number;
 }
 
 export default function PreviewSidebar({
@@ -26,6 +32,10 @@ export default function PreviewSidebar({
   const [isResizing, setIsResizing] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [logs, setLogs] = useState<ConsoleLog[]>([]);
+  const [isConsoleOpen, setIsConsoleOpen] = useState(true);
+  const [previewKey, setPreviewKey] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Detect mobile viewport
@@ -37,6 +47,22 @@ export default function PreviewSidebar({
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Listen for messages from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'console-error') {
+        setLogs(prev => [...prev, {
+          type: 'error',
+          message: event.data.message,
+          timestamp: Date.now()
+        }]);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   // Handle resizing
@@ -90,6 +116,55 @@ export default function PreviewSidebar({
     URL.revokeObjectURL(url);
   };
 
+  const handleRefresh = () => {
+    setIsLoading(true);
+    setLogs([]);
+    setPreviewKey(prev => prev + 1);
+  };
+
+  const handleIframeLoad = () => {
+    // Add a small delay to ensure the transition is visible and smoother
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+  };
+
+  const handleCopyError = (message: string) => {
+    navigator.clipboard.writeText(message);
+  };
+
+  // Inject error capturing script
+  const getInjectedContent = () => {
+    const script = `
+      <script>
+        (function() {
+          const originalConsoleError = console.error;
+          console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            window.parent.postMessage({
+              type: 'console-error',
+              message: args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+              ).join(' ')
+            }, '*');
+          };
+          
+          window.onerror = function(message, source, lineno, colno, error) {
+            window.parent.postMessage({
+              type: 'console-error',
+              message: message
+            }, '*');
+          };
+        })();
+      </script>
+    `;
+    // Insert script after <head> or at the beginning if no head
+    if (content.includes('<head>')) {
+      return content.replace('<head>', '<head>' + script);
+    }
+    return script + content;
+  };
+
   if (!isOpen) return null;
 
   const sidebarStyle = isMobileView 
@@ -100,7 +175,7 @@ export default function PreviewSidebar({
     <>
       {isMobileView && <div className="preview-backdrop" onClick={onClose} />}
       <div 
-        className={`preview-sidebar ${isMobileView ? 'mobile-bottom-sheet' : 'desktop-sidebar'}`}
+        className={`preview-sidebar ${isMobileView ? 'mobile-bottom-sheet' : 'desktop-sidebar'} ${themeMode}`}
         style={sidebarStyle}
         ref={sidebarRef}
       >
@@ -130,6 +205,26 @@ export default function PreviewSidebar({
           </div>
           
           <div className="header-actions">
+            {activeTab === 'preview' && (
+              <>
+                <button 
+                  className={`icon-btn ${isConsoleOpen ? 'active' : ''}`}
+                  onClick={() => setIsConsoleOpen(!isConsoleOpen)}
+                  title="Toggle Console"
+                >
+                  <Terminal size={18} />
+                  {logs.length > 0 && <span className="console-badge">{logs.length}</span>}
+                </button>
+                <button 
+                  className="icon-btn" 
+                  onClick={handleRefresh}
+                  title="Refresh Preview"
+                >
+                  <RefreshCw size={18} />
+                </button>
+              </>
+            )}
+            <div className="divider-vertical" />
             <button 
               className="icon-btn" 
               onClick={handleCopy}
@@ -168,41 +263,86 @@ export default function PreviewSidebar({
           </div>
         </div>
 
-        <div className="preview-content">
-          {activeTab === 'preview' ? (
-            <div className={`preview-frame-container ${!isMobileView && deviceMode === 'mobile' ? 'mobile-mockup-container' : ''}`}>
-              {!isMobileView && deviceMode === 'mobile' ? (
-                 <div className="iphone-mockup">
-                   <div className="iphone-notch"></div>
-                   <div className="iphone-screen">
-                      <iframe 
-                        srcDoc={content}
-                        title="HTML Preview"
-                        className="preview-iframe"
-                        sandbox="allow-scripts" 
-                      />
+        <div className="preview-content-wrapper">
+          <div className={`preview-content ${activeTab === 'preview' ? 'preview-mode' : 'source-mode'}`}>
+            {activeTab === 'preview' ? (
+              <div className={`preview-frame-container ${!isMobileView && deviceMode === 'mobile' ? 'mobile-mockup-container' : ''}`}>
+                {isLoading && (
+                  <div className="loading-overlay">
+                    <div className="spinner"></div>
+                  </div>
+                )}
+                {!isMobileView && deviceMode === 'mobile' ? (
+                   <div className="iphone-mockup">
+                     <div className="iphone-notch"></div>
+                     <div className="iphone-screen">
+                        <iframe 
+                          key={previewKey}
+                          srcDoc={getInjectedContent()}
+                          title="HTML Preview"
+                          className={`preview-iframe ${isLoading ? 'loading' : 'loaded'}`}
+                          sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin" 
+                          onLoad={handleIframeLoad}
+                        />
+                     </div>
                    </div>
-                 </div>
-              ) : (
-                <iframe 
-                  srcDoc={content}
-                  title="HTML Preview"
-                  className="preview-iframe"
-                  sandbox="allow-scripts" 
-                />
-              )}
-            </div>
-          ) : (
-            <div className="source-view">
-               <SyntaxHighlighter
-                style={themeMode === 'dark' ? oneDark : oneLight}
-                language="html"
-                customStyle={{ margin: 0, height: '100%', borderRadius: 0, overflow: 'auto' }}
-                showLineNumbers={true}
-                wrapLines={true}
-              >
-                {content}
-              </SyntaxHighlighter>
+                ) : (
+                  <iframe 
+                    key={previewKey}
+                    srcDoc={getInjectedContent()}
+                    title="HTML Preview"
+                    className={`preview-iframe ${isLoading ? 'loading' : 'loaded'}`}
+                    sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+                    onLoad={handleIframeLoad} 
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="source-view">
+                 <SyntaxHighlighter
+                  style={themeMode === 'dark' ? oneDark : oneLight}
+                  language="html"
+                  customStyle={{ margin: 0, height: '100%', borderRadius: 0, overflow: 'auto' }}
+                  showLineNumbers={true}
+                  wrapLines={true}
+                >
+                  {content}
+                </SyntaxHighlighter>
+              </div>
+            )}
+          </div>
+
+          {/* Console Panel */}
+          {activeTab === 'preview' && isConsoleOpen && (
+            <div className={`console-panel ${isMobileView ? 'console-floating' : 'console-docked'}`}>
+              <div className="console-header">
+                <div className="console-title">
+                  <AlertCircle size={14} className="console-icon" />
+                  <span>Console Errors</span>
+                  <span className="console-count">{logs.length}</span>
+                </div>
+                <button className="console-close" onClick={() => setIsConsoleOpen(false)}>
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="console-body">
+                {logs.length === 0 ? (
+                  <div className="console-empty">No errors detected</div>
+                ) : (
+                  logs.map((log, index) => (
+                    <div key={index} className="console-log-item">
+                      <div className="log-message">{log.message}</div>
+                      <button 
+                        className="log-copy-btn" 
+                        onClick={() => handleCopyError(log.message)}
+                        title="Copy Error"
+                      >
+                        <Copy size={12} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
         </div>
