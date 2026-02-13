@@ -1,0 +1,256 @@
+.preview-sidebar {
+  position: fixed;
+  background-color: var(--md-sys-color-surface);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.desktop-sidebar {
+  top: 64px;
+  right: 0;
+  bottom: 0;
+  border-left: 1px solid var(--md-sys-color-outline);
+}
+
+.mobile-bottom-sheet {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease-out;
+  border-top: 1px solid var(--md-sys-color-outline);
+  height: 95vh !important; /* Force higher height for bottom sheet */
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.preview-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 19;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.resize-handle {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  background: transparent;
+  z-index: 21;
+}
+
+.resize-handle:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: var(--md-sys-color-surface-variant);
+  border-bottom: 1px solid var(--md-sys-color-outline);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.device-toggles {
+  display: flex;
+  background-color: var(--md-sys-color-surface);
+  border-radius: 8px;
+  padding: 2px;
+  border: 1px solid var(--md-sys-color-outline);
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  background-color: rgba(0,0,0,0.05);
+  color: var(--md-sys-color-on-surface);
+}
+
+.icon-btn.active {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.preview-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--md-sys-color-on-surface);
+}
+
+.tab-btn.active {
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: var(--md-sys-color-on-surface);
+}
+
+.preview-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background-color: white; /* Always white for HTML preview unless source */
+  /* Fix scroll chaining */
+  overscroll-behavior: contain;
+}
+
+.preview-frame-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f0f2f5; /* Light background for mockup context */
+}
+
+/* Mobile Mockup Styles */
+.mobile-mockup-container {
+  padding: 24px;
+  overflow-y: auto;
+  align-items: flex-start; /* Allow scrolling if mockup is too tall */
+}
+
+.iphone-mockup {
+  /* iPhone 17 Pro approximate dimensions */
+  width: 320px; 
+  height: 680px;
+  background-color: #000; /* Match border color to prevent gaps */
+  border-radius: 48px;
+  border: 12px solid #1a1a1a; /* Frame color */
+  box-shadow: 
+    0 0 0 2px #3a3a3a, /* Outer rim */
+    0 20px 40px rgba(0,0,0,0.3);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin: auto;
+  /* Fix gap issues */
+  display: flex;
+  flex-direction: column;
+}
+
+.iphone-notch {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96px; /* Dynamic Island width */
+  height: 26px; /* Dynamic Island height */
+  background-color: #000;
+  border-radius: 20px; /* Pill shape */
+  z-index: 10;
+  box-shadow: 0 0 2px rgba(255,255,255,0.05); /* Subtle rim */
+}
+
+.iphone-screen {
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  overflow: hidden;
+  border-radius: 36px; /* Inner radius to match frame */
+  /* Remove gaps by ensuring it fills the container */
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: white;
+  display: block;
+}
+
+/* Hide scrollbars for iframe in mobile mode */
+.iphone-screen .preview-iframe {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.iphone-screen .preview-iframe::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Webkit */
+}
+
+.source-view {
+  height: 100%;
+  overflow: hidden; /* Use syntax highlighter's overflow */
+  background-color: var(--md-sys-color-surface);
+  overscroll-behavior: contain;
+}

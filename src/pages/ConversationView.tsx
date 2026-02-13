@@ -12,6 +12,8 @@ import mermaid from 'mermaid';
 import { Sun, Moon, Monitor, Copy, Check, Download, ChevronDown, ChevronRight, Brain, Github, MoreVertical, FileQuestion } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import ConversationInput from '../components/ConversationInput';
+import HtmlCard from '../components/HtmlCard';
+import PreviewSidebar from '../components/PreviewSidebar';
 import 'katex/dist/katex.min.css';
 import './ConversationView.css';
 
@@ -93,7 +95,7 @@ const MermaidBlock = ({ chart, theme }: { chart: string, theme: string }) => {
 };
 
 // Component for Thinking Process
-const ThinkingBlock = ({ children, theme, themeMode }: { children: string, theme: any, themeMode: string }) => {
+const ThinkingBlock = ({ children, theme, themeMode, onPreview }: { children: string, theme: any, themeMode: string, onPreview?: (content: string) => void }) => {
   const [isCollapsed, setIsCollapsed] = useState(true); // Default collapsed
 
   return (
@@ -120,6 +122,10 @@ const ThinkingBlock = ({ children, theme, themeMode }: { children: string, theme
                   
                   if (!inline && lang === 'mermaid') {
                      return <MermaidBlock chart={String(children)} theme={themeMode} />
+                  }
+
+                  if (!inline && lang === 'html' && onPreview) {
+                    return <HtmlCard content={String(children)} onPreview={() => onPreview(String(children))} />
                   }
 
                   return !inline && match ? (
@@ -248,9 +254,15 @@ export default function ConversationView() {
   const [downloadUrl, setDownloadUrl] = useState('https://github.com/Glassous/AImeAndroid/releases');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
+  const [htmlPreview, setHtmlPreview] = useState<{ isOpen: boolean; content: string }>({ isOpen: false, content: '' });
+  const [previewWidth, setPreviewWidth] = useState(60);
   const menuRef = useRef<HTMLDivElement>(null);
   
   const { theme, resolvedTheme, cycleTheme } = useTheme();
+
+  const handlePreview = (content: string) => {
+    setHtmlPreview({ isOpen: true, content });
+  };
 
   const closeMenu = useCallback(() => {
     if (showMobileMenu) {
@@ -473,8 +485,15 @@ export default function ConversationView() {
       </header>
 
       {/* Content Area */}
-      <main className="content-area">
-        {conversation.messages.map((msg, index) => (
+      <div style={{ display: 'flex', flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <main className="content-area" style={{ 
+          width: htmlPreview.isOpen && window.innerWidth > 768 ? `${100 - previewWidth}%` : '100%',
+          maxWidth: htmlPreview.isOpen && window.innerWidth > 768 ? 'none' : '1000px',
+          margin: htmlPreview.isOpen && window.innerWidth > 768 ? '0' : '0 auto',
+          flex: 'none',
+          transition: 'width 0.3s ease'
+      }}>
+          {conversation.messages.map((msg, index) => (
           <div key={index} className={`message-item ${msg.role === 'user' ? 'user-message-container' : 'ai-message-container'}`}>
             {msg.role === 'user' ? (
               <>
@@ -500,6 +519,7 @@ export default function ConversationView() {
                           key={partIndex} 
                           theme={resolvedTheme === 'dark' ? oneDark : oneLight}
                           themeMode={resolvedTheme}
+                          onPreview={handlePreview}
                         >
                           {preprocessContent(thinkContent)}
                         </ThinkingBlock>
@@ -520,6 +540,10 @@ export default function ConversationView() {
                               
                               if (!inline && lang === 'mermaid') {
                                  return <MermaidBlock chart={String(children)} theme={resolvedTheme} />
+                              }
+
+                              if (!inline && lang === 'html') {
+                                return <HtmlCard content={String(children)} onPreview={() => handlePreview(String(children))} />
                               }
 
                               return !inline && match ? (
@@ -558,6 +582,15 @@ export default function ConversationView() {
           </div>
         ))}
       </main>
+      <PreviewSidebar 
+          isOpen={htmlPreview.isOpen}
+          content={htmlPreview.content}
+          onClose={() => setHtmlPreview(prev => ({ ...prev, isOpen: false }))}
+          width={previewWidth}
+          onWidthChange={setPreviewWidth}
+          themeMode={resolvedTheme}
+      />
+      </div>
     </div>
   );
 }
