@@ -95,7 +95,7 @@ const MermaidBlock = ({ chart, theme }: { chart: string, theme: string }) => {
 };
 
 // Component for Thinking Process
-const ThinkingBlock = ({ children, theme, themeMode, onPreview }: { children: string, theme: any, themeMode: string, onPreview?: (content: string) => void }) => {
+const ThinkingBlock = ({ children, theme, themeMode, onPreview }: { children: string, theme: any, themeMode: string, onPreview?: (content: string, tab?: 'preview' | 'source') => void }) => {
   const [isCollapsed, setIsCollapsed] = useState(true); // Default collapsed
 
   return (
@@ -125,7 +125,10 @@ const ThinkingBlock = ({ children, theme, themeMode, onPreview }: { children: st
                   }
 
                   if (!inline && lang === 'html' && onPreview) {
-                    return <HtmlCard content={String(children)} onPreview={() => onPreview(String(children))} />
+                    return <HtmlCard 
+                      onPreview={() => onPreview(String(children), 'preview')} 
+                      onViewSource={() => onPreview(String(children), 'source')}
+                    />
                   }
 
                   return !inline && match ? (
@@ -254,14 +257,22 @@ export default function ConversationView() {
   const [downloadUrl, setDownloadUrl] = useState('https://github.com/Glassous/AImeAndroid/releases');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
-  const [htmlPreview, setHtmlPreview] = useState<{ isOpen: boolean; content: string }>({ isOpen: false, content: '' });
+  const [htmlPreview, setHtmlPreview] = useState<{
+    isOpen: boolean; 
+    content: string; 
+    initialTab?: 'preview' | 'source';
+  }>({
+    isOpen: false,
+    content: '',
+    initialTab: 'preview'
+  });
   const [previewWidth, setPreviewWidth] = useState(60);
   const menuRef = useRef<HTMLDivElement>(null);
   
   const { theme, resolvedTheme, cycleTheme } = useTheme();
 
-  const handlePreview = (content: string) => {
-    setHtmlPreview({ isOpen: true, content });
+  const handlePreview = (content: string, tab: 'preview' | 'source' = 'preview') => {
+    setHtmlPreview({ isOpen: true, content, initialTab: tab });
   };
 
   const closeMenu = useCallback(() => {
@@ -543,7 +554,10 @@ export default function ConversationView() {
                               }
 
                               if (!inline && lang === 'html') {
-                                return <HtmlCard content={String(children)} onPreview={() => handlePreview(String(children))} />
+                                return <HtmlCard 
+                                  onPreview={() => handlePreview(String(children), 'preview')}
+                                  onViewSource={() => handlePreview(String(children), 'source')}
+                                />
                               }
 
                               return !inline && match ? (

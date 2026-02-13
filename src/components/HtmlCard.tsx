@@ -1,13 +1,12 @@
-import React from 'react';
 import { Eye, Code } from 'lucide-react';
 import './HtmlCard.css';
 
 interface HtmlCardProps {
-  content: string;
   onPreview: () => void;
+  onViewSource?: () => void;
 }
 
-export default function HtmlCard({ content, onPreview }: HtmlCardProps) {
+export default function HtmlCard({ onPreview, onViewSource }: HtmlCardProps) {
   return (
     <div className="html-card-container">
       <div className="html-card-header">
@@ -19,7 +18,7 @@ export default function HtmlCard({ content, onPreview }: HtmlCardProps) {
             <Eye size={16} />
             <span>Preview</span>
           </button>
-          <button className="html-card-btn secondary" onClick={onPreview}>
+          <button className="html-card-btn secondary" onClick={onViewSource || onPreview}>
             <Code size={16} />
             <span>Source</span>
           </button>

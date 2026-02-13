@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Code, Eye, Smartphone, Monitor, Copy, Download, Check, RefreshCw, Terminal, AlertCircle } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -11,6 +11,7 @@ interface PreviewSidebarProps {
   width: number;
   onWidthChange: (width: number) => void;
   themeMode: 'light' | 'dark';
+  initialTab?: 'preview' | 'source';
 }
 
 interface ConsoleLog {
@@ -25,18 +26,32 @@ export default function PreviewSidebar({
   onClose,
   width,
   onWidthChange,
-  themeMode
+  themeMode,
+  initialTab = 'preview'
 }: PreviewSidebarProps) {
-  const [activeTab, setActiveTab] = useState<'preview' | 'source'>('preview');
+  const [activeTab, setActiveTab] = useState<'preview' | 'source'>(initialTab);
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isResizing, setIsResizing] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [logs, setLogs] = useState<ConsoleLog[]>([]);
-  const [isConsoleOpen, setIsConsoleOpen] = useState(true);
+  const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  const handleClose = () => {
+    if (isMobileView) {
+      setIsClosing(true);
+      setTimeout(() => {
+        onClose();
+        setIsClosing(false);
+      }, 300); // Match animation duration
+    } else {
+      onClose();
+    }
+  };
 
   // Detect mobile viewport
   useEffect(() => {
@@ -173,9 +188,9 @@ export default function PreviewSidebar({
 
   return (
     <>
-      {isMobileView && <div className="preview-backdrop" onClick={onClose} />}
+      {isMobileView && <div className={`preview-backdrop ${isClosing ? 'closing' : ''}`} onClick={handleClose} />}
       <div 
-        className={`preview-sidebar ${isMobileView ? 'mobile-bottom-sheet' : 'desktop-sidebar'} ${themeMode}`}
+        className={`preview-sidebar ${isMobileView ? 'mobile-bottom-sheet' : 'desktop-sidebar'} ${themeMode} ${isClosing ? 'closing' : ''}`}
         style={sidebarStyle}
         ref={sidebarRef}
       >
@@ -257,7 +272,7 @@ export default function PreviewSidebar({
                 </button>
               </div>
             )}
-            <button className="close-btn" onClick={onClose}>
+            <button className="close-btn" onClick={handleClose}>
               <X size={20} />
             </button>
           </div>
