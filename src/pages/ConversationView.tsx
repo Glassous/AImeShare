@@ -260,11 +260,11 @@ export default function ConversationView() {
   const [htmlPreview, setHtmlPreview] = useState<{
     isOpen: boolean; 
     content: string; 
-    initialTab?: 'preview' | 'source';
+    activeTab: 'preview' | 'source';
   }>({
     isOpen: false,
     content: '',
-    initialTab: 'preview'
+    activeTab: 'preview'
   });
   const [previewWidth, setPreviewWidth] = useState(60);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -272,7 +272,7 @@ export default function ConversationView() {
   const { theme, resolvedTheme, cycleTheme } = useTheme();
 
   const handlePreview = (content: string, tab: 'preview' | 'source' = 'preview') => {
-    setHtmlPreview({ isOpen: true, content, initialTab: tab });
+    setHtmlPreview({ isOpen: true, content, activeTab: tab });
   };
 
   const closeMenu = useCallback(() => {
@@ -603,6 +603,8 @@ export default function ConversationView() {
           width={previewWidth}
           onWidthChange={setPreviewWidth}
           themeMode={resolvedTheme}
+          activeTab={htmlPreview.activeTab}
+          onTabChange={(tab) => setHtmlPreview(prev => ({ ...prev, activeTab: tab }))}
       />
       </div>
     </div>

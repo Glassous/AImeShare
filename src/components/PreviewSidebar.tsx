@@ -11,7 +11,8 @@ interface PreviewSidebarProps {
   width: number;
   onWidthChange: (width: number) => void;
   themeMode: 'light' | 'dark';
-  initialTab?: 'preview' | 'source';
+  activeTab: 'preview' | 'source';
+  onTabChange: (tab: 'preview' | 'source') => void;
 }
 
 interface ConsoleLog {
@@ -27,9 +28,9 @@ export default function PreviewSidebar({
   width,
   onWidthChange,
   themeMode,
-  initialTab = 'preview'
+  activeTab,
+  onTabChange
 }: PreviewSidebarProps) {
-  const [activeTab, setActiveTab] = useState<'preview' | 'source'>(initialTab);
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isResizing, setIsResizing] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
@@ -38,6 +39,8 @@ export default function PreviewSidebar({
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSourceLoading, setIsSourceLoading] = useState(false);
+  const [renderSource, setRenderSource] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -112,6 +115,37 @@ export default function PreviewSidebar({
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isResizing, onWidthChange]);
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'preview') {
+      return;
+    }
+    setIsLoading(true);
+    setPreviewKey(prev => prev + 1);
+  }, [isOpen, activeTab, content]);
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'source') {
+      setIsSourceLoading(false);
+      setRenderSource(false);
+      return;
+    }
+    setIsSourceLoading(true);
+    setRenderSource(false);
+    let timeoutId: number | null = null;
+    const rafId = requestAnimationFrame(() => {
+      timeoutId = window.setTimeout(() => {
+        setRenderSource(true);
+        setIsSourceLoading(false);
+      }, 250);
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [isOpen, activeTab, content]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
@@ -226,14 +260,14 @@ export default function PreviewSidebar({
           <div className="preview-tabs">
             <button 
               className={`tab-btn ${activeTab === 'preview' ? 'active' : ''}`}
-              onClick={() => setActiveTab('preview')}
+              onClick={() => onTabChange('preview')}
             >
               <Eye size={16} />
               <span>Preview</span>
             </button>
             <button 
               className={`tab-btn ${activeTab === 'source' ? 'active' : ''}`}
-              onClick={() => setActiveTab('source')}
+              onClick={() => onTabChange('source')}
             >
               <Code size={16} />
               <span>Source</span>
@@ -335,15 +369,22 @@ export default function PreviewSidebar({
               </div>
             ) : (
               <div className="source-view">
-                 <SyntaxHighlighter
-                  style={themeMode === 'dark' ? oneDark : oneLight}
-                  language="html"
-                  customStyle={{ margin: 0, height: '100%', borderRadius: 0, overflow: 'auto' }}
-                  showLineNumbers={true}
-                  wrapLines={true}
-                >
-                  {content}
-                </SyntaxHighlighter>
+                {isSourceLoading && (
+                  <div className="loading-overlay">
+                    <div className="spinner"></div>
+                  </div>
+                )}
+                {renderSource && (
+                  <SyntaxHighlighter
+                    style={themeMode === 'dark' ? oneDark : oneLight}
+                    language="html"
+                    customStyle={{ margin: 0, height: '100%', borderRadius: 0, overflow: 'auto' }}
+                    showLineNumbers={true}
+                    wrapLines={true}
+                  >
+                    {content}
+                  </SyntaxHighlighter>
+                )}
               </div>
             )}
           </div>

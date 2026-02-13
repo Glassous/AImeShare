@@ -392,6 +392,7 @@
   overflow: hidden;
   background-color: var(--md-sys-color-surface);
   overscroll-behavior: contain;
+  position: relative;
 }
 
 /* Console Panel Styles */
