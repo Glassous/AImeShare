@@ -14,6 +14,7 @@ import { useTheme } from '../hooks/useTheme';
 import ConversationInput from '../components/ConversationInput';
 import HtmlCard from '../components/HtmlCard';
 import PreviewSidebar from '../components/PreviewSidebar';
+import SearchBlock from '../components/SearchBlock';
 import 'katex/dist/katex.min.css';
 import './ConversationView.css';
 
@@ -521,7 +522,8 @@ export default function ConversationView() {
             ) : (
               <div className="ai-text">
                 {(() => {
-                  const parts = msg.content.split(/(<think>[\s\S]*?<\/think>)/g);
+                  const content = msg.content.replace(/【前置回复】/g, '');
+                  const parts = content.split(/(<think>[\s\S]*?<\/think>|<search>[\s\S]*?<\/search>)/g);
                   return parts.map((part, partIndex) => {
                     if (part.startsWith('<think>') && part.endsWith('</think>')) {
                       const thinkContent = part.replace(/^<think>|<\/think>$/g, '');
@@ -535,6 +537,9 @@ export default function ConversationView() {
                           {preprocessContent(thinkContent)}
                         </ThinkingBlock>
                       );
+                    } else if (part.startsWith('<search>') && part.endsWith('</search>')) {
+                      const searchContent = part.replace(/^<search>|<\/search>$/g, '');
+                      return <SearchBlock key={partIndex} content={searchContent} />;
                     } else if (part.trim()) {
                       return (
                         <ReactMarkdown
