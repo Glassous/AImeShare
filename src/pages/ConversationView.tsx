@@ -13,6 +13,7 @@ import { Sun, Moon, Monitor, Copy, Check, Download, ChevronDown, ChevronRight, B
 import { useTheme } from '../hooks/useTheme';
 import ConversationInput from '../components/ConversationInput';
 import HtmlCard from '../components/HtmlCard';
+import WebAnalysisCard from '../components/WebAnalysisCard';
 import PreviewSidebar from '../components/PreviewSidebar';
 import SearchBlock from '../components/SearchBlock';
 import 'katex/dist/katex.min.css';
@@ -42,6 +43,12 @@ const preprocessContent = (content: string) => {
   processed = processed.replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$');
   // Replace \( ... \) with $ ... $
   processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
+  
+  // Ensure proper formatting for web_analysis blocks
+  // 1. Ensure newline before the code block if it follows text directly
+  processed = processed.replace(/([^\n])(\s*```html\s*<!--\s*type:\s*web_analysis)/g, '$1\n\n$2');
+  // 2. Ensure newline after the opening fence
+  processed = processed.replace(/(```html)\s*(<!--\s*type:\s*web_analysis)/g, '$1\n$2');
   
   return processed;
 };
@@ -261,19 +268,24 @@ export default function ConversationView() {
   const [htmlPreview, setHtmlPreview] = useState<{
     isOpen: boolean; 
     content: string; 
+    sourceContent?: string;
     activeTab: 'preview' | 'source';
+    showToolbarControls?: boolean;
+    webAnalysisMode?: boolean;
+    previewUrl?: string;
   }>({
     isOpen: false,
     content: '',
-    activeTab: 'preview'
+    activeTab: 'preview',
+    showToolbarControls: true
   });
   const [previewWidth, setPreviewWidth] = useState(60);
   const menuRef = useRef<HTMLDivElement>(null);
   
   const { theme, resolvedTheme, cycleTheme } = useTheme();
 
-  const handlePreview = (content: string, tab: 'preview' | 'source' = 'preview') => {
-    setHtmlPreview({ isOpen: true, content, activeTab: tab });
+  const handlePreview = (content: string, tab: 'preview' | 'source' = 'preview', sourceContent?: string, showToolbarControls: boolean = true, webAnalysisMode: boolean = false, previewUrl?: string) => {
+    setHtmlPreview({ isOpen: true, content, sourceContent, activeTab: tab, showToolbarControls, webAnalysisMode, previewUrl });
   };
 
   const closeMenu = useCallback(() => {
@@ -510,7 +522,96 @@ export default function ConversationView() {
             {msg.role === 'user' ? (
               <>
                 <div className="user-bubble">
-                  {msg.content}
+                  <ReactMarkdown
+                    remarkPlugins={[remarkMath, remarkGfm, remarkSupersub]}
+                    rehypePlugins={[rehypeKatex]}
+                    components={{
+                      a({node, ...props}: any) {
+                        return <a target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }} {...props} />
+                      },
+                      code({inline, className, children, ...props}: any) {
+                        const match = /language-(\w+)/.exec(className || '')
+                        const lang = match ? match[1].toLowerCase() : '';
+                        const content = String(children);
+
+                        // Enhanced detection for web analysis content
+                        const isWebAnalysis = /<!--\s*type:\s*web_analysis\s+url:/.test(content);
+
+                        if (!inline && (lang === 'html' || lang === 'xml' || isWebAnalysis)) {
+                          const webAnalysisMatch = content.match(/<!--\s*type:\s*web_analysis\s+url:\s*`?([^`\s]+)`?\s+web_title:(.*?)\s*-->/s);
+                          
+                          if (webAnalysisMatch) {
+                              const url = webAnalysisMatch[1];
+                              const title = webAnalysisMatch[2].trim();
+                              const bodyContent = content.replace(webAnalysisMatch[0], '').trim();
+                              
+                              // Helper to detect if content has HTML tags
+                              const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(bodyContent);
+                              
+                              // Format content: if it has HTML tags, use as is; otherwise wrap paragraphs
+                              const formattedBody = hasHtmlTags 
+                                ? bodyContent 
+                                : bodyContent.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('');
+
+                              const htmlWrapper = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; padding: 24px; max-width: 800px; margin: 0 auto; color: #333; }
+h1 { font-size: 24px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #eaeaea; }
+.metadata { font-size: 13px; color: #666; margin-bottom: 24px; background: #f5f5f5; padding: 8px 12px; border-radius: 6px; display: inline-block; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; height: auto; border-radius: 8px; margin: 16px 0; }
+pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace; font-size: 13px; line-height: 1.45; }
+code { background: rgba(175, 184, 193, 0.2); padding: 0.2em 0.4em; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace; font-size: 85%; }
+blockquote { margin: 0; padding: 0 1em; color: #57606a; border-left: 0.25em solid #d0d7de; }
+p { margin-bottom: 16px; }
+@media (prefers-color-scheme: dark) {
+  body { background-color: #0d1117; color: #c9d1d9; }
+  h1 { border-bottom-color: #30363d; }
+  .metadata { background: #161b22; color: #8b949e; }
+  a { color: #58a6ff; }
+  pre { background: #161b22; }
+  code { background: rgba(110, 118, 129, 0.4); }
+  blockquote { color: #8b949e; border-left-color: #30363d; }
+}
+</style>
+</head>
+<body>
+<h1>${title}</h1>
+<div class="content">
+${formattedBody}
+</div>
+</body>
+</html>`;
+                              return <WebAnalysisCard 
+                                onPreview={() => handlePreview(htmlWrapper, 'preview', content, false, true, url)}
+                                onContent={() => handlePreview(htmlWrapper, 'source', content, false, true, url)}
+                              />
+                          }
+                        }
+
+                        return !inline && match ? (
+                          <CodeBlock 
+                            language={match[1]} 
+                            theme={resolvedTheme === 'dark' ? oneDark : oneLight}
+                          >
+                            {String(children)}
+                          </CodeBlock>
+                        ) : (
+                          <code className={className} {...props} style={{ background: 'rgba(255,255,255,0.2)' }}>
+                            {children}
+                          </code>
+                        )
+                      }
+                    }}
+                  >
+                    {preprocessContent(msg.content)}
+                  </ReactMarkdown>
                 </div>
                 <div className="copy-button-container copy-button-user">
                   <button className="copy-button" onClick={() => handleCopy(msg.content, index)}>
@@ -552,16 +653,77 @@ export default function ConversationView() {
                             },
                             code({inline, className, children, ...props}: any) {
                               const match = /language-(\w+)/.exec(className || '')
-                              const lang = match ? match[1] : '';
+                              const lang = match ? match[1].toLowerCase() : '';
+                              const content = String(children);
                               
                               if (!inline && lang === 'mermaid') {
-                                 return <MermaidBlock chart={String(children)} theme={resolvedTheme} />
+                                 return <MermaidBlock chart={content} theme={resolvedTheme} />
                               }
 
-                              if (!inline && lang === 'html') {
+                              // Enhanced detection for web analysis content
+                              const isWebAnalysis = /<!--\s*type:\s*web_analysis\s+url:/.test(content);
+
+                              if (!inline && (lang === 'html' || lang === 'xml' || isWebAnalysis)) {
+                                const webAnalysisMatch = content.match(/<!--\s*type:\s*web_analysis\s+url:\s*`?([^`\s]+)`?\s+web_title:(.*?)\s*-->/s);
+                                
+                                if (webAnalysisMatch) {
+                                    const url = webAnalysisMatch[1];
+                                    const title = webAnalysisMatch[2].trim();
+                                    const bodyContent = content.replace(webAnalysisMatch[0], '').trim();
+                                    
+                                    // Helper to detect if content has HTML tags
+                                    const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(bodyContent);
+                                    
+                                    // Format content: if it has HTML tags, use as is; otherwise wrap paragraphs
+                                    const formattedBody = hasHtmlTags 
+                                      ? bodyContent 
+                                      : bodyContent.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('');
+
+                                    const htmlWrapper = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; padding: 24px; max-width: 800px; margin: 0 auto; color: #333; }
+h1 { font-size: 24px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #eaeaea; }
+.metadata { font-size: 13px; color: #666; margin-bottom: 24px; background: #f5f5f5; padding: 8px 12px; border-radius: 6px; display: inline-block; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; height: auto; border-radius: 8px; margin: 16px 0; }
+pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace; font-size: 13px; line-height: 1.45; }
+code { background: rgba(175, 184, 193, 0.2); padding: 0.2em 0.4em; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace; font-size: 85%; }
+blockquote { margin: 0; padding: 0 1em; color: #57606a; border-left: 0.25em solid #d0d7de; }
+p { margin-bottom: 16px; }
+@media (prefers-color-scheme: dark) {
+  body { background-color: #0d1117; color: #c9d1d9; }
+  h1 { border-bottom-color: #30363d; }
+  .metadata { background: #161b22; color: #8b949e; }
+  a { color: #58a6ff; }
+  pre { background: #161b22; }
+  code { background: rgba(110, 118, 129, 0.4); }
+  blockquote { color: #8b949e; border-left-color: #30363d; }
+}
+</style>
+</head>
+<body>
+<h1>${title}</h1>
+<div class="metadata">Source: <a href="${url}" target="_blank">${url}</a></div>
+<div class="content">
+${formattedBody}
+</div>
+</body>
+</html>`;
+                                    return <HtmlCard 
+                                      onPreview={() => handlePreview(htmlWrapper, 'preview', content)}
+                                      onViewSource={() => handlePreview(htmlWrapper, 'source', content)}
+                                    />
+                                }
+
                                 return <HtmlCard 
-                                  onPreview={() => handlePreview(String(children), 'preview')}
-                                  onViewSource={() => handlePreview(String(children), 'source')}
+                                  onPreview={() => handlePreview(content, 'preview')}
+                                  onViewSource={() => handlePreview(content, 'source')}
                                 />
                               }
 
@@ -601,15 +763,19 @@ export default function ConversationView() {
           </div>
         ))}
       </main>
-      <PreviewSidebar 
-          isOpen={htmlPreview.isOpen}
-          content={htmlPreview.content}
-          onClose={() => setHtmlPreview(prev => ({ ...prev, isOpen: false }))}
-          width={previewWidth}
-          onWidthChange={setPreviewWidth}
-          themeMode={resolvedTheme}
-          activeTab={htmlPreview.activeTab}
-          onTabChange={(tab) => setHtmlPreview(prev => ({ ...prev, activeTab: tab }))}
+      <PreviewSidebar
+        isOpen={htmlPreview.isOpen}
+        content={htmlPreview.content}
+        sourceContent={htmlPreview.sourceContent}
+        onClose={() => setHtmlPreview(prev => ({ ...prev, isOpen: false }))}
+        width={previewWidth}
+        onWidthChange={setPreviewWidth}
+        themeMode={resolvedTheme as 'light' | 'dark'}
+        activeTab={htmlPreview.activeTab}
+        onTabChange={(tab) => setHtmlPreview(prev => ({ ...prev, activeTab: tab }))}
+        showToolbarControls={htmlPreview.showToolbarControls}
+        webAnalysisMode={htmlPreview.webAnalysisMode}
+        previewUrl={htmlPreview.previewUrl}
       />
       </div>
     </div>

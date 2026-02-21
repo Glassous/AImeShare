@@ -4,9 +4,11 @@ import './HtmlCard.css';
 interface HtmlCardProps {
   onPreview: () => void;
   onViewSource?: () => void;
+  sourceLabel?: string;
+  previewLabel?: string;
 }
 
-export default function HtmlCard({ onPreview, onViewSource }: HtmlCardProps) {
+export default function HtmlCard({ onPreview, onViewSource, sourceLabel = 'Source', previewLabel = 'Preview' }: HtmlCardProps) {
   return (
     <div className="html-card-container">
       <div className="html-card-header">
@@ -16,11 +18,11 @@ export default function HtmlCard({ onPreview, onViewSource }: HtmlCardProps) {
         <div className="html-card-actions">
           <button className="html-card-btn primary" onClick={onPreview}>
             <Eye size={16} />
-            <span>Preview</span>
+            <span>{previewLabel}</span>
           </button>
           <button className="html-card-btn secondary" onClick={onViewSource || onPreview}>
             <Code size={16} />
-            <span>Source</span>
+            <span>{sourceLabel}</span>
           </button>
         </div>
         <div className="html-card-info">

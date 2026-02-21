@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Code, Eye, Smartphone, Monitor, Copy, Download, Check, RefreshCw, Terminal, AlertCircle } from 'lucide-react';
+import { X, Code, Eye, Smartphone, Monitor, Copy, Download, Check, RefreshCw, Terminal, AlertCircle, ExternalLink, FileText } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './PreviewSidebar.css';
@@ -7,12 +7,16 @@ import './PreviewSidebar.css';
 interface PreviewSidebarProps {
   isOpen: boolean;
   content: string;
+  sourceContent?: string;
   onClose: () => void;
   width: number;
   onWidthChange: (width: number) => void;
   themeMode: 'light' | 'dark';
   activeTab: 'preview' | 'source';
   onTabChange: (tab: 'preview' | 'source') => void;
+  showToolbarControls?: boolean;
+  webAnalysisMode?: boolean;
+  previewUrl?: string;
 }
 
 interface ConsoleLog {
@@ -24,12 +28,16 @@ interface ConsoleLog {
 export default function PreviewSidebar({
   isOpen,
   content,
+  sourceContent,
   onClose,
   width,
   onWidthChange,
   themeMode,
   activeTab,
-  onTabChange
+  onTabChange,
+  showToolbarControls = true,
+  webAnalysisMode = false,
+  previewUrl
 }: PreviewSidebarProps) {
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isResizing, setIsResizing] = useState(false);
@@ -85,9 +93,9 @@ export default function PreviewSidebar({
 
   // Handle resizing
   useEffect(() => {
+    if (!isResizing) return;
+
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      
       const windowWidth = window.innerWidth;
       const newWidth = ((windowWidth - e.clientX) / windowWidth) * 100;
       
@@ -99,20 +107,18 @@ export default function PreviewSidebar({
 
     const handleMouseUp = () => {
       setIsResizing(false);
-      document.body.style.cursor = 'default';
-      document.body.style.userSelect = 'auto';
     };
 
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'ew-resize';
-      document.body.style.userSelect = 'none';
-    }
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
     };
   }, [isResizing, onWidthChange]);
 
@@ -269,13 +275,13 @@ export default function PreviewSidebar({
               className={`tab-btn ${activeTab === 'source' ? 'active' : ''}`}
               onClick={() => onTabChange('source')}
             >
-              <Code size={16} />
-              <span>Source</span>
+              {webAnalysisMode ? <FileText size={16} /> : <Code size={16} />}
+              <span>{webAnalysisMode ? 'Content' : 'Source'}</span>
             </button>
           </div>
           
           <div className="header-actions">
-            {activeTab === 'preview' && (
+            {showToolbarControls && activeTab === 'preview' && (
               <>
                 <button 
                   className={`icon-btn ${isConsoleOpen ? 'active' : ''}`}
@@ -294,22 +300,41 @@ export default function PreviewSidebar({
                 </button>
               </>
             )}
+            
+            {webAnalysisMode && activeTab === 'preview' && previewUrl && (
+              <button 
+                className="icon-btn" 
+                onClick={() => window.open(previewUrl, '_blank')}
+                title="Open in new tab"
+              >
+                <ExternalLink size={18} />
+              </button>
+            )}
+
             <div className="divider-vertical" />
-            <button 
-              className="icon-btn" 
-              onClick={handleCopy}
-              title="Copy Code"
-            >
-              {isCopied ? <Check size={18} /> : <Copy size={18} />}
-            </button>
-            <button 
-              className="icon-btn" 
-              onClick={handleDownload}
-              title="Download HTML"
-            >
-              <Download size={18} />
-            </button>
-            {!isMobileView && activeTab === 'preview' && (
+            
+            {/* Standard toolbar controls */}
+            {showToolbarControls && (
+              <>
+                <button 
+                  className="icon-btn" 
+                  onClick={handleCopy}
+                  title="Copy Code"
+                >
+                  {isCopied ? <Check size={18} /> : <Copy size={18} />}
+                </button>
+                <button 
+                  className="icon-btn" 
+                  onClick={handleDownload}
+                  title="Download HTML"
+                >
+                  <Download size={18} />
+                </button>
+              </>
+            )}
+
+            {/* Device toggles - show in both standard mode AND web analysis mode if activeTab is preview */}
+            {(!isMobileView && activeTab === 'preview' && (showToolbarControls || webAnalysisMode)) && (
               <div className="device-toggles">
                 <button 
                   className={`icon-btn ${deviceMode === 'desktop' ? 'active' : ''}`}
@@ -327,13 +352,14 @@ export default function PreviewSidebar({
                 </button>
               </div>
             )}
+            
             <button className="close-btn" onClick={handleClose}>
               <X size={20} />
             </button>
           </div>
         </div>
 
-        <div className="preview-content-wrapper">
+        <div className="preview-content-wrapper" style={{ pointerEvents: isResizing ? 'none' : 'auto' }}>
           <div className={`preview-content ${activeTab === 'preview' ? 'preview-mode' : 'source-mode'}`}>
             {activeTab === 'preview' ? (
               <div className={`preview-frame-container ${!isMobileView && deviceMode === 'mobile' ? 'mobile-mockup-container' : ''}`}>
@@ -348,10 +374,11 @@ export default function PreviewSidebar({
                      <div className="iphone-screen">
                         <iframe 
                           key={previewKey}
-                          srcDoc={getInjectedContent()}
+                          src={webAnalysisMode && previewUrl ? previewUrl : undefined}
+                          srcDoc={webAnalysisMode && previewUrl ? undefined : getInjectedContent()}
                           title="HTML Preview"
                           className={`preview-iframe ${isLoading ? 'loading' : 'loaded'}`}
-                          sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin" 
+                          sandbox={webAnalysisMode ? undefined : "allow-scripts allow-modals allow-forms allow-popups allow-same-origin"} 
                           onLoad={handleIframeLoad}
                         />
                      </div>
@@ -359,10 +386,11 @@ export default function PreviewSidebar({
                 ) : (
                   <iframe 
                     key={previewKey}
-                    srcDoc={getInjectedContent()}
+                    src={webAnalysisMode && previewUrl ? previewUrl : undefined}
+                    srcDoc={webAnalysisMode && previewUrl ? undefined : getInjectedContent()}
                     title="HTML Preview"
                     className={`preview-iframe ${isLoading ? 'loading' : 'loaded'}`}
-                    sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+                    sandbox={webAnalysisMode ? undefined : "allow-scripts allow-modals allow-forms allow-popups allow-same-origin"}
                     onLoad={handleIframeLoad} 
                   />
                 )}
@@ -374,16 +402,27 @@ export default function PreviewSidebar({
                     <div className="spinner"></div>
                   </div>
                 )}
-                {renderSource && (
-                  <SyntaxHighlighter
-                    style={themeMode === 'dark' ? oneDark : oneLight}
-                    language="html"
-                    customStyle={{ margin: 0, height: '100%', borderRadius: 0, overflow: 'auto' }}
-                    showLineNumbers={true}
-                    wrapLines={true}
-                  >
-                    {content}
-                  </SyntaxHighlighter>
+                {webAnalysisMode ? (
+                  <div className="preview-frame-container" style={{height: '100%', overflow: 'hidden'}}>
+                    <iframe 
+                      srcDoc={content}
+                      title="Content Preview"
+                      className="preview-iframe loaded"
+                      style={{border: 'none', width: '100%', height: '100%'}}
+                    />
+                  </div>
+                ) : (
+                  renderSource && (
+                    <SyntaxHighlighter
+                      style={themeMode === 'dark' ? oneDark : oneLight}
+                      language="html"
+                      customStyle={{ margin: 0, height: '100%', borderRadius: 0, overflow: 'auto' }}
+                      showLineNumbers={true}
+                      wrapLines={true}
+                    >
+                      {sourceContent || content}
+                    </SyntaxHighlighter>
+                  )
                 )}
               </div>
             )}
