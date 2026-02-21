@@ -1,6 +1,13 @@
 .search-block-container {
   margin: 12px 0;
   width: fit-content;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .search-block-container {
+    width: 100%;
+  }
 }
 
 .search-card {
@@ -14,7 +21,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
-  min-width: 200px;
+  min-width: 300px;
 }
 
 :root[data-theme='dark'] .search-card {

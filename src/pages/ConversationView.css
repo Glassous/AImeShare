@@ -341,6 +341,10 @@
   box-shadow: var(--md-sys-elevation-level-0);
 }
 
+.user-bubble p {
+  margin: 0;
+}
+
 .ai-message-container {
   align-self: flex-start;
   width: 100%;
