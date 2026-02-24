@@ -306,6 +306,32 @@
   border-top-color: var(--md-sys-color-outline-variant);
 }
 
+/* Mobile-only Header Info (Hidden by default on PC) */
+.mobile-header-info {
+  display: none;
+  flex-direction: column;
+  padding: 0 0 16px 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.mobile-title-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+  color: var(--md-sys-color-on-surface);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.mobile-model-text {
+  font-size: 0.9rem;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-top: 4px;
+}
+
 /* Reduced Spacing Modifications */
 .content-area {
   flex: 1;
@@ -540,69 +566,48 @@
 @media (max-width: 768px) {
   .top-app-bar {
     display: flex !important;
-    justify-content: flex-start;
+    justify-content: space-between;
     gap: 0;
   }
 
   .brand-text {
-    display: none;
+    display: block;
+    font-size: 1.1rem;
   }
 
   .app-logo {
-    margin-right: 0;
-    height: 48px !important; /* Enforced size to match text block */
+    margin-right: 8px;
+    height: 24px !important; 
     width: auto !important;
     max-height: 100%;
     object-fit: contain;
   }
 
+  /* Hide center title/model in top bar on mobile */
   .top-bar-center {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-start !important;
-    text-align: left !important;
-    margin-left: 4px;
-    padding: 0 !important;
+    display: none !important;
   }
   
-  /* Reduce title padding/margin if needed */
-  .title-text {
-     margin: 0;
-     font-size: 1.3rem;
-     font-weight: 600;
-     text-align: left !important;
-     width: 100%;
-  }
-  
-  .model-text {
-    text-align: left !important;
-    width: 100%;
-  }
-
   .top-bar-right {
-    gap: 0; /* Reduced gap to minimum */
+    gap: 4px; /* Tight gap */
     align-items: center;
     margin-left: auto;
   }
 
   /* Enlarge buttons in mobile */
   .mobile-menu-btn svg, 
-  .download-app-btn svg {
-    width: 24px;
-    height: 24px;
+  .download-app-btn svg,
+  .theme-toggle-btn svg,
+  .icon-link-btn svg {
+    width: 20px;
+    height: 20px;
   }
   
   /* Adjust button container for larger touch target but tighter spacing */
-  .mobile-menu-btn {
-    padding: 8px; /* Reduced from 10px */
+  .mobile-menu-btn, .theme-toggle-btn, .icon-link-btn, .download-app-btn {
+    padding: 8px; 
   }
   
-  .download-app-btn {
-    padding: 8px; /* Reduced from 8px 12px */
-  }
-
   .download-text {
     display: none;
   }
@@ -611,15 +616,25 @@
     border-radius: 50%;
   }
   
-  /* Mobile Menu Visibility */
+  /* Show desktop actions as icons on mobile */
   .desktop-actions {
+    display: flex !important;
+  }
+  
+  .divider-wrapper {
+    display: none !important;
+  }
+
+  /* Hide three dots menu on mobile */
+  .mobile-menu-container {
     display: none !important;
   }
   
-  .mobile-menu-container {
-    display: block;
+  /* Show content title/model on mobile */
+  .mobile-header-info {
+    display: flex;
   }
-  
+
   /* Remove background from icon buttons in mobile */
   .mobile-menu-btn, .theme-toggle-btn, .icon-link-btn, .download-app-btn {
     background-color: transparent !important;
@@ -628,7 +643,7 @@
   }
   
   /* Ensure icons are visible */
-  .mobile-menu-btn {
-    color: var(--md-sys-color-on-surface);
+  .mobile-menu-btn, .theme-toggle-btn, .icon-link-btn {
+    color: var(--md-sys-color-on-surface-variant);
   }
 }

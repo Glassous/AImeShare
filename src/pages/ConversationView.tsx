@@ -610,6 +610,12 @@ export default function ConversationView() {
           flex: 'none',
           transition: 'width 0.3s ease'
       }}>
+          {/* Mobile-only Title and Model */}
+          <div className="mobile-header-info">
+            <h1 className="mobile-title-text">{conversation.title || 'Untitled Conversation'}</h1>
+            <span className="mobile-model-text">{conversation.model || 'Unknown Model'}</span>
+          </div>
+
           {conversation.messages.map((msg, index) => (
           <div key={index} className={`message-item ${msg.role === 'user' ? 'user-message-container' : 'ai-message-container'}`}>
             {msg.role === 'user' ? (
