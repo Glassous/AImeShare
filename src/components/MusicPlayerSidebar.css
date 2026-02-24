@@ -1,0 +1,318 @@
+/* Reuse PreviewSidebar styles for consistency */
+.preview-sidebar {
+  position: fixed;
+  background-color: var(--md-sys-color-surface);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  top: 64px;
+  right: 0;
+  bottom: 0;
+  border-left: 1px solid var(--md-sys-color-outline);
+  transform: translateX(100%); /* Start off-screen */
+}
+
+.preview-sidebar.open {
+  transform: translateX(0); /* Slide in */
+}
+
+.preview-sidebar.closing {
+  transform: translateX(100%); /* Slide out */
+}
+
+.preview-sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 19;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.3s ease-out;
+  display: none;
+}
+
+/* Show overlay only on mobile or when needed */
+@media (max-width: 768px) {
+  .preview-sidebar-overlay.open {
+    display: block;
+  }
+  
+  .preview-sidebar {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 90vh;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    border-left: none;
+    border-top: 1px solid var(--md-sys-color-outline);
+    transform: translateY(100%);
+  }
+
+  .preview-sidebar.open {
+    transform: translateY(0);
+  }
+
+  .preview-sidebar.closing {
+    transform: translateY(100%);
+  }
+}
+
+.sidebar-resizer {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  background: transparent;
+  z-index: 21;
+}
+
+.sidebar-resizer:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: var(--md-sys-color-surface-variant);
+  border-bottom: 1px solid var(--md-sys-color-outline);
+  height: 60px;
+  box-sizing: border-box;
+}
+
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.close-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Music Specific Styles */
+.music-header {
+  background: var(--md-sys-color-surface);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.music-player-content {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 60px); /* Subtract header height */
+  padding: 24px;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  overflow: hidden;
+}
+
+.music-visual-area {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  margin-bottom: 24px;
+  position: relative;
+  border-radius: 16px;
+  background: var(--md-sys-color-surface-container-high);
+}
+
+.album-art-large {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.album-art-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.lyrics-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px;
+  text-align: center;
+  /* Hide scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.lyrics-container::-webkit-scrollbar {
+  display: none;
+}
+
+.lyric-line {
+  margin: 16px 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 16px;
+  transition: all 0.3s ease;
+  opacity: 0.6;
+}
+
+.lyric-line.active {
+  color: var(--md-sys-color-primary);
+  font-size: 20px;
+  font-weight: bold;
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.no-lyrics {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.music-controls-area {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.music-info {
+  text-align: center;
+}
+
+.song-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-artist {
+  font-size: 14px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.time-current, .time-duration {
+  font-size: 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  width: 40px;
+  text-align: center;
+}
+
+/* Update seek slider styles for thin line appearance */
+.seek-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 2px; /* Thinner line */
+  background: var(--md-sys-color-on-surface-variant); /* Theme aware color */
+  border-radius: 1px;
+  outline: none;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.seek-slider:hover {
+  opacity: 1;
+}
+
+.seek-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--md-sys-color-primary); /* Use primary color for thumb */
+  cursor: pointer;
+  transition: transform 0.1s;
+  /* Removed negative margin to fix alignment, flexbox handles vertical centering */
+}
+
+.seek-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.control-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.control-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.control-btn:hover {
+  background-color: var(--md-sys-color-surface-container-highest);
+}
+
+.control-btn.play-pause {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  padding: 16px;
+}
+
+.control-btn.play-pause:hover {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.control-btn.secondary {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Dark mode specific adjustments if needed */
+.dark .music-visual-area {
+  background: #1e1e1e;
+}

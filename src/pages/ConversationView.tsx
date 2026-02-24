@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkSupersub from 'remark-supersub';
@@ -16,6 +17,8 @@ import HtmlCard from '../components/HtmlCard';
 import WebAnalysisCard from '../components/WebAnalysisCard';
 import PreviewSidebar from '../components/PreviewSidebar';
 import SearchBlock from '../components/SearchBlock';
+import MusicCard, { type Song } from '../components/MusicCard';
+import MusicPlayerSidebar from '../components/MusicPlayerSidebar';
 import 'katex/dist/katex.min.css';
 import './ConversationView.css';
 
@@ -49,6 +52,81 @@ const preprocessContent = (content: string) => {
   processed = processed.replace(/([^\n])(\s*```html\s*<!--\s*type:\s*web_analysis)/g, '$1\n\n$2');
   // 2. Ensure newline after the opening fence
   processed = processed.replace(/(```html)\s*(<!--\s*type:\s*web_analysis)/g, '$1\n$2');
+
+  // Music tag processing
+  const musicRegex = /<music>([\s\S]*?)<\/music>/g;
+  const musicMatches = [...processed.matchAll(musicRegex)];
+
+  if (musicMatches.length > 0) {
+    let newContent = '';
+    let lastIndex = 0;
+    let i = 0;
+    
+    while (i < musicMatches.length) {
+      const match = musicMatches[i];
+      const start = match.index!;
+      const end = start + match[0].length;
+      
+      // Append content before this match
+      newContent += processed.substring(lastIndex, start);
+      
+      // Check for consecutive matches
+      const group = [match];
+      let j = i + 1;
+      let nextStart = end;
+      
+      while (j < musicMatches.length) {
+        const nextMatch = musicMatches[j];
+        const gap = processed.substring(nextStart, nextMatch.index!);
+        
+        // If gap is only whitespace, consider consecutive
+        if (!gap.trim()) {
+          group.push(nextMatch);
+          nextStart = nextMatch.index! + nextMatch[0].length;
+          j++;
+        } else {
+          break;
+        }
+      }
+      
+      // Process the group
+      const songs = group.map(m => {
+        const inner = m[1];
+        const getValue = (key: string) => {
+           const r = new RegExp(`${key}:\\s*(.*)`);
+           const res = inner.match(r);
+           return res ? res[1].trim() : '';
+        };
+        const getLrc = () => {
+           // Lrc is usually the last part, capture everything after Lrc:
+           const r = /Lrc:\s*([\s\S]*)/;
+           const res = inner.match(r);
+           return res ? res[1].trim() : '';
+        };
+
+        // Clean up URL and Pic if wrapped in backticks
+        const clean = (s: string) => s.replace(/^`|`$/g, '');
+
+        return {
+           name: getValue('Name'),
+           artist: getValue('Artist'),
+           album: getValue('Album'),
+           url: clean(getValue('URL')),
+           pic: clean(getValue('Pic')),
+           lrc: getLrc()
+        };
+      });
+      
+      // Use a custom delimiter for music data
+      newContent += `\n<div data-music-json='${JSON.stringify(songs).replace(/'/g, "&apos;")}'></div>\n`;
+      
+      lastIndex = nextStart;
+      i = j;
+    }
+    
+    newContent += processed.substring(lastIndex);
+    processed = newContent;
+  }
   
   return processed;
 };
@@ -280,6 +358,21 @@ export default function ConversationView() {
     showToolbarControls: true
   });
   const [previewWidth, setPreviewWidth] = useState(60);
+  const [musicPlayerWidth, setMusicPlayerWidth] = useState(40);
+  const [musicPlayer, setMusicPlayer] = useState<{
+    isOpen: boolean;
+    currentSong?: Song;
+    songList?: Song[];
+  }>({ isOpen: false });
+
+  const handleMusicPlay = (song: Song, allSongs: Song[]) => {
+    setMusicPlayer({
+      isOpen: true,
+      currentSong: song,
+      songList: allSongs
+    });
+  };
+
   const menuRef = useRef<HTMLDivElement>(null);
   
   const { theme, resolvedTheme, cycleTheme } = useTheme();
@@ -511,9 +604,9 @@ export default function ConversationView() {
       {/* Content Area */}
       <div style={{ display: 'flex', flex: 1, position: 'relative', overflow: 'hidden' }}>
       <main className="content-area" style={{ 
-          width: htmlPreview.isOpen && window.innerWidth > 768 ? `${100 - previewWidth}%` : '100%',
-          maxWidth: htmlPreview.isOpen && window.innerWidth > 768 ? 'none' : '1000px',
-          margin: htmlPreview.isOpen && window.innerWidth > 768 ? '0' : '0 auto',
+          width: (htmlPreview.isOpen || musicPlayer.isOpen) && window.innerWidth > 768 ? `${100 - (htmlPreview.isOpen ? previewWidth : musicPlayerWidth)}%` : '100%',
+          maxWidth: (htmlPreview.isOpen || musicPlayer.isOpen) && window.innerWidth > 768 ? 'none' : '1000px',
+          margin: (htmlPreview.isOpen || musicPlayer.isOpen) && window.innerWidth > 768 ? '0' : '0 auto',
           flex: 'none',
           transition: 'width 0.3s ease'
       }}>
@@ -528,6 +621,18 @@ export default function ConversationView() {
                     components={{
                       a({node, ...props}: any) {
                         return <a target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }} {...props} />
+                      },
+                      div({node, className, ...props}: any) {
+                         if (props['data-music-json']) {
+                             try {
+                               const songs = JSON.parse(props['data-music-json'].replace(/&apos;/g, "'"));
+                               return <MusicCard songs={songs} onPlay={handleMusicPlay} />;
+                             } catch (e) {
+                               console.error('Failed to parse music json', e);
+                               return null;
+                             }
+                         }
+                         return <div className={className} {...props} />;
                       },
                       code({inline, className, children, ...props}: any) {
                         const match = /language-(\w+)/.exec(className || '')
@@ -646,10 +751,22 @@ ${formattedBody}
                         <ReactMarkdown
                           key={partIndex}
                           remarkPlugins={[remarkMath, remarkGfm, remarkSupersub]}
-                          rehypePlugins={[rehypeKatex]}
+                          rehypePlugins={[rehypeKatex, rehypeRaw]}
                           components={{
                             a({node, ...props}: any) {
                               return <a target="_blank" rel="noopener noreferrer" {...props} />
+                            },
+                            div({node, className, ...props}: any) {
+                               if (props['data-music-json']) {
+                                   try {
+                                     const songs = JSON.parse(props['data-music-json'].replace(/&apos;/g, "'"));
+                                     return <MusicCard songs={songs} onPlay={handleMusicPlay} />;
+                                   } catch (e) {
+                                     console.error('Failed to parse music json', e);
+                                     return null;
+                                   }
+                               }
+                               return <div className={className} {...props} />;
                             },
                             code({inline, className, children, ...props}: any) {
                               const match = /language-(\w+)/.exec(className || '')
@@ -776,6 +893,15 @@ ${formattedBody}
         showToolbarControls={htmlPreview.showToolbarControls}
         webAnalysisMode={htmlPreview.webAnalysisMode}
         previewUrl={htmlPreview.previewUrl}
+      />
+      <MusicPlayerSidebar
+        isOpen={musicPlayer.isOpen}
+        onClose={() => setMusicPlayer(prev => ({ ...prev, isOpen: false }))}
+        initialSong={musicPlayer.currentSong}
+        songList={musicPlayer.songList}
+        themeMode={resolvedTheme as 'light' | 'dark'}
+        width={musicPlayerWidth}
+        onWidthChange={setMusicPlayerWidth}
       />
       </div>
     </div>
