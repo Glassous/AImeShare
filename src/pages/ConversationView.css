@@ -561,6 +561,18 @@
   border: 1px solid var(--md-sys-color-outline);
 }
 
+.markdown-image {
+  margin: 12px 0;
+  display: block;
+  max-width: 100%;
+  text-align: left;
+}
+
+.markdown-image .preview-trigger-image {
+  border-radius: 8px;
+  max-height: 600px;
+}
+
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
   .top-app-bar {

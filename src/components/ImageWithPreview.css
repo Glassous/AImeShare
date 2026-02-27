@@ -1,0 +1,143 @@
+.image-preview-wrapper {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.05);
+  justify-content: flex-start;
+}
+
+.preview-trigger-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  transition: transform 0.3s ease;
+}
+
+.image-preview-wrapper:hover .preview-trigger-image {
+  transform: scale(1.02);
+}
+
+.image-hover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.image-preview-wrapper:hover .image-hover-overlay {
+  opacity: 1;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.action-btn {
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+  background-color: #f0f0f0;
+}
+
+/* Modal Styles */
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.image-modal-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-actions {
+  margin-top: 20px;
+}
+
+.modal-download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 24px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #333;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.modal-download-btn:hover {
+  transform: translateY(-2px);
+  background-color: #f0f0f0;
+}
+
+@media (max-width: 768px) {
+  .modal-close-btn {
+    top: -50px;
+    right: 0;
+  }
+}

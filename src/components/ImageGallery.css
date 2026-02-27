@@ -30,19 +30,20 @@
   width: 100%;
 }
 
-.gallery-image {
+.gallery-image-wrapper {
   width: 100%;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.gallery-image-wrapper .preview-trigger-image {
+  max-width: 100%;
+  width: auto;
   height: auto;
   display: block;
   border-radius: 6px;
   object-fit: contain;
-  max-height: 500px; /* 限制单张图片最大高度 */
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.single-image .gallery-image {
-  max-width: 100%;
-  width: auto; /* 原比例显示 */
+  max-height: 500px;
 }
 
 /* 隐藏滚动条但保留滚动功能 (可选) */

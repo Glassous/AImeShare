@@ -20,6 +20,7 @@ import SearchBlock from '../components/SearchBlock';
 import MusicCard, { type Song } from '../components/MusicCard';
 import MusicPlayerSidebar from '../components/MusicPlayerSidebar';
 import ImageGallery from '../components/ImageGallery';
+import ImageWithPreview from '../components/ImageWithPreview';
 import 'katex/dist/katex.min.css';
 import './ConversationView.css';
 
@@ -250,6 +251,9 @@ const ThinkingBlock = ({ children, theme, themeMode, onPreview }: { children: st
                       {children}
                     </code>
                   )
+                },
+                img({src, alt}: any) {
+                  return <ImageWithPreview src={src} alt={alt} className="markdown-image" />;
                 },
                 table({children}: any) {
                   return <TableBlock>{children}</TableBlock>
@@ -742,6 +746,9 @@ ${formattedBody}
                             {children}
                           </code>
                         )
+                      },
+                      img({src, alt}: any) {
+                        return <ImageWithPreview src={src} alt={alt} className="markdown-image" />;
                       }
                     }}
                   >
@@ -887,6 +894,9 @@ ${formattedBody}
                                   {children}
                                 </code>
                               )
+                            },
+                            img({src, alt}: any) {
+                              return <ImageWithPreview src={src} alt={alt} className="markdown-image" />;
                             },
                             table({children}: any) {
                               return <TableBlock>{children}</TableBlock>

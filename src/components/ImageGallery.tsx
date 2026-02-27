@@ -1,4 +1,5 @@
 import React from 'react';
+import ImageWithPreview from './ImageWithPreview';
 import './ImageGallery.css';
 
 interface ImageGalleryProps {
@@ -13,11 +14,10 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
       <div className={`image-gallery-grid ${images.length > 1 ? 'multi-images' : 'single-image'}`}>
         {images.map((src, index) => (
           <div key={index} className="gallery-item">
-            <img 
+            <ImageWithPreview 
               src={src} 
               alt={`image-${index}`} 
-              className="gallery-image"
-              loading="lazy"
+              className="gallery-image-wrapper"
             />
           </div>
         ))}
