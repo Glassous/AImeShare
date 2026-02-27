@@ -381,18 +381,17 @@
 .ai-text {
   color: var(--md-sys-color-on-surface);
   font: var(--md-sys-typescale-body-large-font);
-  line-height: 1.1;
-  white-space: pre-wrap;
+  line-height: 1.6; /* Increased for better readability */
 }
 
 /* Markdown specific styles */
 .ai-text p {
-  margin: 0.1em 0; /* Reduced margin from 0.3em to 0.2em */
+  margin: 0.5em 0; /* Standard paragraph spacing */
 }
 
 .ai-text h1, .ai-text h2, .ai-text h3, .ai-text h4 {
-  margin-top: 0.3em;
-  margin-bottom: 0.1em;
+  margin-top: 1.2em;
+  margin-bottom: 0.6em;
   font-weight: 600;
   color: var(--md-sys-color-on-surface);
 }
