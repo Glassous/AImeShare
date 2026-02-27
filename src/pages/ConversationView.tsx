@@ -19,6 +19,7 @@ import PreviewSidebar from '../components/PreviewSidebar';
 import SearchBlock from '../components/SearchBlock';
 import MusicCard, { type Song } from '../components/MusicCard';
 import MusicPlayerSidebar from '../components/MusicPlayerSidebar';
+import ImageGallery from '../components/ImageGallery';
 import 'katex/dist/katex.min.css';
 import './ConversationView.css';
 
@@ -129,6 +130,26 @@ const preprocessContent = (content: string) => {
   }
   
   return processed;
+};
+
+// Helper to extract base64 images from content
+const extractBase64Images = (content: string) => {
+  if (!content) return { cleanedContent: '', images: [] };
+  
+  const images: string[] = [];
+   // Match <img src="data:image/...;base64,...">
+   // We handle both double and single quotes, and optional spaces around src=
+   const imgRegex = /<img[^>]+src\s*=\s*["'](data:image\/[^;]+;base64,[^"']+)["'][^>]*>/g;
+   
+   const cleanedContent = content.replace(imgRegex, (_, src) => {
+    images.push(src);
+    return '';
+  });
+
+  return { 
+    cleanedContent: cleanedContent.trim(), 
+    images 
+  };
 };
 
 // Component for Mermaid Diagrams
@@ -616,7 +637,10 @@ export default function ConversationView() {
             <span className="mobile-model-text">{conversation.model || 'Unknown Model'}</span>
           </div>
 
-          {conversation.messages.map((msg, index) => (
+          {conversation.messages.map((msg, index) => {
+            const { cleanedContent, images } = extractBase64Images(msg.content);
+            
+            return (
           <div key={index} className={`message-item ${msg.role === 'user' ? 'user-message-container' : 'ai-message-container'}`}>
             {msg.role === 'user' ? (
               <>
@@ -721,8 +745,9 @@ ${formattedBody}
                       }
                     }}
                   >
-                    {preprocessContent(msg.content)}
+                    {preprocessContent(cleanedContent)}
                   </ReactMarkdown>
+                  <ImageGallery images={images} />
                 </div>
                 <div className="copy-button-container copy-button-user">
                   <button className="copy-button" onClick={() => handleCopy(msg.content, index)}>
@@ -734,7 +759,7 @@ ${formattedBody}
             ) : (
               <div className="ai-text">
                 {(() => {
-                  const content = msg.content.replace(/【前置回复】/g, '');
+                  const content = cleanedContent.replace(/【前置回复】/g, '');
                   const parts = content.split(/(<think>[\s\S]*?<\/think>|<search>[\s\S]*?<\/search>)/g);
                   return parts.map((part, partIndex) => {
                     if (part.startsWith('<think>') && part.endsWith('</think>')) {
@@ -875,6 +900,7 @@ ${formattedBody}
                     return null;
                   });
                 })()}
+                <ImageGallery images={images} />
                 <div className="copy-button-container copy-button-ai">
                   <button className="copy-button" onClick={() => handleCopy(msg.content, index)}>
                     {copiedIndex === index ? <Check size={14} /> : <Copy size={14} />}
@@ -884,7 +910,8 @@ ${formattedBody}
               </div>
             )}
           </div>
-        ))}
+        );
+      })}
       </main>
       <PreviewSidebar
         isOpen={htmlPreview.isOpen}

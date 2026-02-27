@@ -1,0 +1,56 @@
+.image-gallery-container {
+  margin-top: 12px;
+  max-height: 80vh; /* 限制容器最大高度 */
+  max-width: 100%; /* 限制容器最大宽度 */
+  overflow-y: auto;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.image-gallery-grid {
+  display: block;
+  column-gap: 8px;
+  width: 100%;
+}
+
+/* 瀑布流布局 */
+.image-gallery-grid.multi-images {
+  columns: 2; /* 默认 2 列，可以根据需要调整 */
+}
+
+@media (min-width: 640px) {
+  .image-gallery-grid.multi-images {
+    columns: 3;
+  }
+}
+
+.gallery-item {
+  break-inside: avoid;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.gallery-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 6px;
+  object-fit: contain;
+  max-height: 500px; /* 限制单张图片最大高度 */
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.single-image .gallery-image {
+  max-width: 100%;
+  width: auto; /* 原比例显示 */
+}
+
+/* 隐藏滚动条但保留滚动功能 (可选) */
+.image-gallery-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.image-gallery-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
