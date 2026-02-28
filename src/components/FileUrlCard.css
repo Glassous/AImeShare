@@ -1,0 +1,73 @@
+.file-url-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin: 8px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  max-width: fit-content;
+  user-select: none;
+}
+
+.file-url-card:hover {
+  background: var(--md-sys-color-surface-container-high);
+  border-color: var(--md-sys-color-outline);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.file-url-card:active {
+  transform: translateY(0);
+}
+
+.file-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.file-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.file-index {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--md-sys-color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.file-url-text {
+  font-size: 13px;
+  color: var(--md-sys-color-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.external-link-icon {
+  margin-left: 4px;
+  color: var(--md-sys-color-outline);
+  opacity: 0.6;
+}
+
+.file-url-card:hover .external-link-icon {
+  opacity: 1;
+}
+
+/* Light/Dark mode specific adjustments if needed */
+.dark .file-url-card {
+  background: var(--md-sys-color-surface-container);
+}

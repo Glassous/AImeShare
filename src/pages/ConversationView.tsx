@@ -22,6 +22,7 @@ import MusicPlayerSidebar from '../components/MusicPlayerSidebar';
 import ImageGallery from '../components/ImageGallery';
 import ImageWithPreview from '../components/ImageWithPreview';
 import VideoWithPreview from '../components/VideoWithPreview';
+import FileUrlCard from '../components/FileUrlCard';
 import 'katex/dist/katex.min.css';
 import './ConversationView.css';
 
@@ -130,6 +131,13 @@ const preprocessContent = (content: string) => {
     newContent += processed.substring(lastIndex);
     processed = newContent;
   }
+
+  // File URL tag processing
+  const fileUrlRegex = /<file_url\s+index="([^"]+)"\s+url="\s*([^"]+)\s*"\s*\/>/g;
+  processed = processed.replace(fileUrlRegex, (_, index, url) => {
+    const data = { index, url };
+    return `\n<div data-file-url-json='${JSON.stringify(data).replace(/'/g, "&apos;")}'></div>\n`;
+  });
   
   return processed;
 };
@@ -232,7 +240,7 @@ const ThinkingBlock = ({ children, theme, themeMode, onPreview }: { children: st
         <div className="think-content-inner">
            <ReactMarkdown
               remarkPlugins={[remarkMath, remarkGfm, remarkSupersub]}
-              rehypePlugins={[rehypeKatex]}
+              rehypePlugins={[rehypeKatex, rehypeRaw]}
               components={{
                 code({inline, className, children, ...props}: any) {
                   const match = /language-(\w+)/.exec(className || '')
@@ -267,6 +275,18 @@ const ThinkingBlock = ({ children, theme, themeMode, onPreview }: { children: st
                 },
                 video({src, poster}: any) {
                   return <VideoWithPreview src={src} poster={poster} className="markdown-video" />;
+                },
+                div({node, className, ...props}: any) {
+                   if (props['data-file-url-json']) {
+                       try {
+                         const data = JSON.parse(props['data-file-url-json'].replace(/&apos;/g, "'"));
+                         return <FileUrlCard index={data.index} url={data.url} />;
+                       } catch (e) {
+                         console.error('Failed to parse file url json', e);
+                         return null;
+                       }
+                   }
+                   return <div className={className} {...props} />;
                 },
                 table({children}: any) {
                   return <TableBlock>{children}</TableBlock>
@@ -669,18 +689,6 @@ export default function ConversationView() {
                       a({node, ...props}: any) {
                         return <a target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }} {...props} />
                       },
-                      div({node, className, ...props}: any) {
-                         if (props['data-music-json']) {
-                             try {
-                               const songs = JSON.parse(props['data-music-json'].replace(/&apos;/g, "'"));
-                               return <MusicCard songs={songs} onPlay={handleMusicPlay} />;
-                             } catch (e) {
-                               console.error('Failed to parse music json', e);
-                               return null;
-                             }
-                         }
-                         return <div className={className} {...props} />;
-                      },
                       code({inline, className, children, ...props}: any) {
                         const match = /language-(\w+)/.exec(className || '')
                         const lang = match ? match[1].toLowerCase() : '';
@@ -765,6 +773,27 @@ ${formattedBody}
                       },
                       video({src, poster}: any) {
                         return <VideoWithPreview src={src} poster={poster} className="markdown-video" />;
+                      },
+                      div({node, className, ...props}: any) {
+                         if (props['data-music-json']) {
+                             try {
+                               const songs = JSON.parse(props['data-music-json'].replace(/&apos;/g, "'"));
+                               return <MusicCard songs={songs} onPlay={handleMusicPlay} />;
+                             } catch (e) {
+                               console.error('Failed to parse music json', e);
+                               return null;
+                             }
+                         }
+                         if (props['data-file-url-json']) {
+                             try {
+                               const data = JSON.parse(props['data-file-url-json'].replace(/&apos;/g, "'"));
+                               return <FileUrlCard index={data.index} url={data.url} />;
+                             } catch (e) {
+                               console.error('Failed to parse file url json', e);
+                               return null;
+                             }
+                         }
+                         return <div className={className} {...props} />;
                       }
                     }}
                   >
@@ -812,18 +841,6 @@ ${formattedBody}
                           components={{
                             a({node, ...props}: any) {
                               return <a target="_blank" rel="noopener noreferrer" {...props} />
-                            },
-                            div({node, className, ...props}: any) {
-                               if (props['data-music-json']) {
-                                   try {
-                                     const songs = JSON.parse(props['data-music-json'].replace(/&apos;/g, "'"));
-                                     return <MusicCard songs={songs} onPlay={handleMusicPlay} />;
-                                   } catch (e) {
-                                     console.error('Failed to parse music json', e);
-                                     return null;
-                                   }
-                               }
-                               return <div className={className} {...props} />;
                             },
                             code({inline, className, children, ...props}: any) {
                               const match = /language-(\w+)/.exec(className || '')
@@ -919,6 +936,27 @@ ${formattedBody}
                             },
                             video({src, poster}: any) {
                               return <VideoWithPreview src={src} poster={poster} className="markdown-video" />;
+                            },
+                            div({node, className, ...props}: any) {
+                               if (props['data-music-json']) {
+                                   try {
+                                     const songs = JSON.parse(props['data-music-json'].replace(/&apos;/g, "'"));
+                                     return <MusicCard songs={songs} onPlay={handleMusicPlay} />;
+                                   } catch (e) {
+                                     console.error('Failed to parse music json', e);
+                                     return null;
+                                   }
+                               }
+                               if (props['data-file-url-json']) {
+                                   try {
+                                     const data = JSON.parse(props['data-file-url-json'].replace(/&apos;/g, "'"));
+                                     return <FileUrlCard index={data.index} url={data.url} />;
+                                   } catch (e) {
+                                     console.error('Failed to parse file url json', e);
+                                     return null;
+                                   }
+                               }
+                               return <div className={className} {...props} />;
                             },
                             table({children}: any) {
                               return <TableBlock>{children}</TableBlock>
