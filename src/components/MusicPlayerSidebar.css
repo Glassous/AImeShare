@@ -239,6 +239,7 @@
 .seek-slider {
   flex: 1;
   -webkit-appearance: none;
+  appearance: none;
   height: 2px; /* Thinner line */
   background: var(--md-sys-color-on-surface-variant); /* Theme aware color */
   border-radius: 1px;
@@ -254,6 +255,7 @@
 
 .seek-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   width: 10px;
   height: 10px;
   border-radius: 50%;
