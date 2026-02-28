@@ -21,6 +21,7 @@ import MusicCard, { type Song } from '../components/MusicCard';
 import MusicPlayerSidebar from '../components/MusicPlayerSidebar';
 import ImageGallery from '../components/ImageGallery';
 import ImageWithPreview from '../components/ImageWithPreview';
+import VideoWithPreview from '../components/VideoWithPreview';
 import 'katex/dist/katex.min.css';
 import './ConversationView.css';
 
@@ -133,23 +134,32 @@ const preprocessContent = (content: string) => {
   return processed;
 };
 
-// Helper to extract base64 images from content
-const extractBase64Images = (content: string) => {
-  if (!content) return { cleanedContent: '', images: [] };
+// Helper to extract base64 images and videos from content
+const extractBase64Media = (content: string) => {
+  if (!content) return { cleanedContent: '', images: [], videos: [] };
   
   const images: string[] = [];
-   // Match <img src="data:image/...;base64,...">
-   // We handle both double and single quotes, and optional spaces around src=
-   const imgRegex = /<img[^>]+src\s*=\s*["'](data:image\/[^;]+;base64,[^"']+)["'][^>]*>/g;
+  const videos: string[] = [];
+  
+  // Match <img src="data:image/...;base64,...">
+  const imgRegex = /<img[^>]+src\s*=\s*["'](data:image\/[^;]+;base64,[^"']+)["'][^>]*>/g;
+  // Match <video[^>]+src\s*=\s*["'](data:video\/[^;]+;base64,[^"']+)["'][^>]*>
+  const videoRegex = /<video[^>]+src\s*=\s*["'](data:video\/[^;]+;base64,[^"']+)["'][^>]*>([\s\S]*?<\/video>)?/g;
    
-   const cleanedContent = content.replace(imgRegex, (_, src) => {
+  let cleanedContent = content.replace(imgRegex, (_, src) => {
     images.push(src);
+    return '';
+  });
+
+  cleanedContent = cleanedContent.replace(videoRegex, (_, src) => {
+    videos.push(src);
     return '';
   });
 
   return { 
     cleanedContent: cleanedContent.trim(), 
-    images 
+    images,
+    videos
   };
 };
 
@@ -254,6 +264,9 @@ const ThinkingBlock = ({ children, theme, themeMode, onPreview }: { children: st
                 },
                 img({src, alt}: any) {
                   return <ImageWithPreview src={src} alt={alt} className="markdown-image" />;
+                },
+                video({src, poster}: any) {
+                  return <VideoWithPreview src={src} poster={poster} className="markdown-video" />;
                 },
                 table({children}: any) {
                   return <TableBlock>{children}</TableBlock>
@@ -642,7 +655,7 @@ export default function ConversationView() {
           </div>
 
           {conversation.messages.map((msg, index) => {
-            const { cleanedContent, images } = extractBase64Images(msg.content);
+            const { cleanedContent, images, videos } = extractBase64Media(msg.content);
             
             return (
           <div key={index} className={`message-item ${msg.role === 'user' ? 'user-message-container' : 'ai-message-container'}`}>
@@ -651,7 +664,7 @@ export default function ConversationView() {
                 <div className="user-bubble">
                   <ReactMarkdown
                     remarkPlugins={[remarkMath, remarkGfm, remarkSupersub]}
-                    rehypePlugins={[rehypeKatex]}
+                    rehypePlugins={[rehypeKatex, rehypeRaw]}
                     components={{
                       a({node, ...props}: any) {
                         return <a target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }} {...props} />
@@ -749,12 +762,18 @@ ${formattedBody}
                       },
                       img({src, alt}: any) {
                         return <ImageWithPreview src={src} alt={alt} className="markdown-image" />;
+                      },
+                      video({src, poster}: any) {
+                        return <VideoWithPreview src={src} poster={poster} className="markdown-video" />;
                       }
                     }}
                   >
                     {preprocessContent(cleanedContent)}
                   </ReactMarkdown>
                   <ImageGallery images={images} />
+                  {videos.map((src, vIdx) => (
+                    <VideoWithPreview key={`v-${vIdx}`} src={src} className="markdown-video" />
+                  ))}
                 </div>
                 <div className="copy-button-container copy-button-user">
                   <button className="copy-button" onClick={() => handleCopy(msg.content, index)}>
@@ -898,6 +917,9 @@ ${formattedBody}
                             img({src, alt}: any) {
                               return <ImageWithPreview src={src} alt={alt} className="markdown-image" />;
                             },
+                            video({src, poster}: any) {
+                              return <VideoWithPreview src={src} poster={poster} className="markdown-video" />;
+                            },
                             table({children}: any) {
                               return <TableBlock>{children}</TableBlock>
                             }
@@ -911,6 +933,9 @@ ${formattedBody}
                   });
                 })()}
                 <ImageGallery images={images} />
+                {videos.map((src, vIdx) => (
+                  <VideoWithPreview key={`v-${vIdx}`} src={src} className="markdown-video" />
+                ))}
                 <div className="copy-button-container copy-button-ai">
                   <button className="copy-button" onClick={() => handleCopy(msg.content, index)}>
                     {copiedIndex === index ? <Check size={14} /> : <Copy size={14} />}

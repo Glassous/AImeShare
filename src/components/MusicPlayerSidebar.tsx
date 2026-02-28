@@ -63,7 +63,10 @@ const MusicPlayerSidebar: React.FC<MusicPlayerSidebarProps> = ({
   const scrollTimeoutRef = useRef<number | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
+
+  const isVideo = currentSong?.url?.match(/\.(mp4|webm|ogg)$/) || currentSong?.url?.includes('video');
 
   // Handle resizing
   useEffect(() => {
@@ -106,16 +109,18 @@ const MusicPlayerSidebar: React.FC<MusicPlayerSidebarProps> = ({
     const audio = audioRef.current;
     
     const handleTimeUpdate = () => {
-      setProgress(audio.currentTime);
+      if (!isVideo) setProgress(audio.currentTime);
     };
     
     const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
+      if (!isVideo) setDuration(audio.duration);
     };
     
     const handleEnded = () => {
-      setIsPlaying(false);
-      handleNext();
+      if (!isVideo) {
+        setIsPlaying(false);
+        handleNext();
+      }
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -127,16 +132,54 @@ const MusicPlayerSidebar: React.FC<MusicPlayerSidebarProps> = ({
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, []); // Run once on mount
+  }, [isVideo]); // Re-run when isVideo changes to avoid state confusion
+
+  // Handle video element events
+  useEffect(() => {
+    if (isVideo && videoRef.current) {
+      const video = videoRef.current;
+      
+      const handleTimeUpdate = () => {
+        setProgress(video.currentTime);
+      };
+      
+      const handleLoadedMetadata = () => {
+        setDuration(video.duration);
+      };
+      
+      const handleEnded = () => {
+        setIsPlaying(false);
+        handleNext();
+      };
+
+      video.addEventListener('timeupdate', handleTimeUpdate);
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      video.addEventListener('ended', handleEnded);
+
+      return () => {
+        video.removeEventListener('timeupdate', handleTimeUpdate);
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        video.removeEventListener('ended', handleEnded);
+      };
+    }
+  }, [isVideo, currentSong]);
 
   // Update song when initialSong changes
   useEffect(() => {
     if (initialSong) {
       setCurrentSong(initialSong);
-      if (audioRef.current) {
-        audioRef.current.src = initialSong.url;
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(e => console.error("Play failed", e));
+      const isSongVideo = initialSong.url.match(/\.(mp4|webm|ogg)$/) || initialSong.url.includes('video');
+      
+      if (isSongVideo) {
+        if (audioRef.current) audioRef.current.pause();
+        // Video element will be handled by its own ref and src once rendered
+      } else {
+        if (audioRef.current) {
+          audioRef.current.src = initialSong.url;
+          audioRef.current.play().then(() => setIsPlaying(true)).catch(e => console.error("Play failed", e));
+        }
       }
+
       // Parse lyrics
       if (initialSong.lrc) {
         setLyrics(parseLrc(initialSong.lrc));
@@ -145,6 +188,27 @@ const MusicPlayerSidebar: React.FC<MusicPlayerSidebarProps> = ({
       }
     }
   }, [initialSong]);
+
+  // Update video playback when isPlaying changes
+  useEffect(() => {
+    if (isVideo && videoRef.current) {
+        if (isPlaying) {
+            videoRef.current.play().catch(e => console.error("Video play failed", e));
+        } else {
+            videoRef.current.pause();
+        }
+    }
+  }, [isPlaying, isVideo]);
+
+  // Update video src when currentSong changes
+  useEffect(() => {
+    if (isVideo && videoRef.current && currentSong) {
+        videoRef.current.src = currentSong.url;
+        if (isPlaying) {
+            videoRef.current.play().catch(e => console.error("Video play failed", e));
+        }
+    }
+  }, [currentSong, isVideo]);
 
   // Update active lyric index based on progress
   useEffect(() => {
@@ -181,11 +245,20 @@ const MusicPlayerSidebar: React.FC<MusicPlayerSidebarProps> = ({
   };
 
   const togglePlay = () => {
-    if (audioRef.current) {
+    if (isVideo) {
+      if (videoRef.current) {
+        if (isPlaying) {
+          videoRef.current.pause();
+        } else {
+          videoRef.current.play().catch(e => console.error("Play failed", e));
+        }
+        setIsPlaying(!isPlaying);
+      }
+    } else if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch(e => console.error("Play failed", e));
       }
       setIsPlaying(!isPlaying);
     }
@@ -193,7 +266,12 @@ const MusicPlayerSidebar: React.FC<MusicPlayerSidebarProps> = ({
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(e.target.value);
-    if (audioRef.current) {
+    if (isVideo) {
+      if (videoRef.current) {
+        videoRef.current.currentTime = time;
+        setProgress(time);
+      }
+    } else if (audioRef.current) {
       audioRef.current.currentTime = time;
       setProgress(time);
     }
@@ -205,10 +283,17 @@ const MusicPlayerSidebar: React.FC<MusicPlayerSidebarProps> = ({
     const prevIndex = (currentIndex - 1 + songList.length) % songList.length;
     const prevSong = songList[prevIndex];
     setCurrentSong(prevSong);
-    if (audioRef.current) {
+    
+    const isNextSongVideo = prevSong.url.match(/\.(mp4|webm|ogg)$/) || prevSong.url.includes('video');
+    
+    if (isNextSongVideo) {
+      if (audioRef.current) audioRef.current.pause();
+      // Video ref and src are handled by useEffect
+    } else if (audioRef.current) {
       audioRef.current.src = prevSong.url;
-      audioRef.current.play().then(() => setIsPlaying(true));
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(e => console.error("Play failed", e));
     }
+    
     if (prevSong.lrc) setLyrics(parseLrc(prevSong.lrc));
     else setLyrics([]);
   };
@@ -219,10 +304,17 @@ const MusicPlayerSidebar: React.FC<MusicPlayerSidebarProps> = ({
     const nextIndex = (currentIndex + 1) % songList.length;
     const nextSong = songList[nextIndex];
     setCurrentSong(nextSong);
-    if (audioRef.current) {
+    
+    const isNextSongVideo = nextSong.url.match(/\.(mp4|webm|ogg)$/) || nextSong.url.includes('video');
+    
+    if (isNextSongVideo) {
+      if (audioRef.current) audioRef.current.pause();
+      // Video ref and src are handled by useEffect
+    } else if (audioRef.current) {
       audioRef.current.src = nextSong.url;
-      audioRef.current.play().then(() => setIsPlaying(true));
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(e => console.error("Play failed", e));
     }
+    
     if (nextSong.lrc) setLyrics(parseLrc(nextSong.lrc));
     else setLyrics([]);
   };
@@ -266,8 +358,11 @@ const MusicPlayerSidebar: React.FC<MusicPlayerSidebarProps> = ({
   const handleClose = () => {
     if (audioRef.current) {
         audioRef.current.pause();
-        setIsPlaying(false);
     }
+    if (videoRef.current) {
+        videoRef.current.pause();
+    }
+    setIsPlaying(false);
     setIsClosing(true);
     setTimeout(() => {
         onClose();
@@ -328,6 +423,16 @@ const MusicPlayerSidebar: React.FC<MusicPlayerSidebarProps> = ({
                                 ) : (
                                     <div className="no-lyrics">No lyrics available</div>
                                 )}
+                            </div>
+                        ) : isVideo ? (
+                            <div className="video-container-large">
+                                <video 
+                                    ref={videoRef}
+                                    src={currentSong.url}
+                                    poster={currentSong.pic}
+                                    playsInline
+                                    onClick={togglePlay}
+                                />
                             </div>
                         ) : (
                             <div className="album-art-large">
